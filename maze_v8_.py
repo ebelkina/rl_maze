@@ -78,7 +78,7 @@ while True:
     #     # Remove the action from the set after using it
     #     possible_actions.discard(action)
 
-    obs, reward, done, _ = env.step(action)
+    obs, reward, done, _, _ = env.step(action)
     env.render()
     print('Reward:', reward)
     print('Done:', done)

@@ -27,7 +27,7 @@ maze = [
 env = gym.make('Maze_v9', maze=maze)
 obs = env.reset()
 env.render()
-env.train(episodes=100)
+env.train(episodes=100, sleep_sec=0)  # sleep_sec=0.05
 #
 # # Visualize the learned path after training
 # env.visualize_learned_path()

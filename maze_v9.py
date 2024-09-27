@@ -93,13 +93,12 @@ class MazeEnv(gym.Env):
         return np.array(self.current_pos), reward, done, None, {}
 
     def get_q_value_color(self, q_value):
-        """ Map a Q-value to a color between red (low Q) and green (high Q). """
+        """ Map a Q-value to a color between white (low Q) and middle gray (high Q). """
         # Normalize Q-value to a range between 0 and 1
         normalized_q = (q_value - np.min(self.q_table)) / (np.max(self.q_table) - np.min(self.q_table) + 1e-5)
-        # Interpolate between red (low) and green (high)
-        red = int((1 - normalized_q) * 255)
-        green = int(normalized_q * 255)
-        return (red, green, 0)
+        # Interpolate between white (low) and middle gray (high)
+        gray_value = int(255 - (normalized_q * (255 - 150)))  # The higher the Q-value, the closer to middle gray
+        return (gray_value, gray_value, gray_value)
 
     def render(self):
         self.screen.fill((255, 255, 255))
@@ -172,7 +171,7 @@ class MazeEnv(gym.Env):
         td_error = td_target - self.q_table[row, col, action]
         self.q_table[row, col, action] += self.alpha * td_error
 
-    def train(self, episodes=1000):
+    def train(self, episodes=100, sleep_sec=0):
         for episode in range(episodes):
             state = self.reset()
             done = False
@@ -199,7 +198,7 @@ class MazeEnv(gym.Env):
                 self.render()
 
                 # Add a small delay for better visualization (adjust as needed)
-                time.sleep(0.1)
+                time.sleep(sleep_sec)
 
                 # Move to the next state
                 state = next_state
