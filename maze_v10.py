@@ -7,7 +7,7 @@ from gym.envs.registration import register
 import time
 
 class MazeEnv(gym.Env):
-    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1):
+    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1, algorithm="q-learning"):
         super(MazeEnv, self).__init__()
         self.maze = np.array(maze)
         self.start_pos = (int(np.where(self.maze == 'S')[0]), int(np.where(self.maze == 'S')[1]))
@@ -26,7 +26,7 @@ class MazeEnv(gym.Env):
         # Initialize Pygame for visualization
         pygame.init()
         self.cell_size = 60
-        self.screen = pygame.display.set_mode((self.num_cols * self.cell_size + 100, self.num_rows * self.cell_size))
+        self.screen = pygame.display.set_mode((self.num_cols * self.cell_size + 200, self.num_rows * self.cell_size))
 
         # Set font for displaying Q-values and button
         self.font = pygame.font.SysFont('Arial', 18)
@@ -37,6 +37,7 @@ class MazeEnv(gym.Env):
         self.is_paused = False
 
         # Q-learning and SARSA parameters
+        self.algorithm = algorithm
         self.q_table_q = np.zeros((self.num_rows, self.num_cols, self.num_actions))  # For Q-learning
         self.q_table_sarsa = np.zeros((self.num_rows, self.num_cols, self.num_actions))  # For SARSA
         self.alpha = alpha
@@ -44,6 +45,9 @@ class MazeEnv(gym.Env):
         self.epsilon = epsilon
 
         self.reached_goals = set()
+
+        self.episode = 0 # TODO
+        self.total_reward = 0
 
     def reset(self, **kwargs):
         self.current_pos = self.start_pos
@@ -140,6 +144,20 @@ class MazeEnv(gym.Env):
         button_text = self.font.render('Pause' if not self.is_paused else 'Resume', True, (0, 0, 0))
         self.screen.blit(button_text, button_text.get_rect(center=self.button_rect.center))
 
+        # Calculate the position below the button to place the text
+        text_x = self.button_rect.left  # Align text with left edge of the button
+        text_y_start = self.button_rect.bottom + 10  # Start the text 10 pixels below the bottom of the button
+
+        # Display the algorithm name, episode number, and total reward
+        algorithm_text = self.font.render(f'Algorithm: {self.algorithm}', True, (0, 0, 0))
+        episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
+        reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
+
+        # Render the text under the button
+        self.screen.blit(algorithm_text, (text_x, text_y_start))
+        self.screen.blit(episode_text, (text_x + 10, text_y_start + 30))  # 30 pixels below the previous line
+        self.screen.blit(reward_text, (text_x, text_y_start + 60))  # 30 pixels below the previous line
+
         pygame.display.update()
 
     def toggle_pause(self):
@@ -178,15 +196,16 @@ class MazeEnv(gym.Env):
         td_error = td_target - self.q_table_sarsa[row, col, action]
         self.q_table_sarsa[row, col, action] += self.alpha * td_error
 
-    def train(self, episodes=100, algorithm="q-learning", sleep_sec=0):
+    def train(self, episodes=100, sleep_sec=0):
         rewards = []
-        for episode in range(episodes):
+        for episode in range(1, episodes+1):
+            self.episode = episode
             state = self.reset()
             done = False
-            total_reward = 0
+            self.total_reward = 0
 
             q_table = self.q_table_q
-            if algorithm == "sarsa":
+            if self.algorithm == "sarsa":
                 q_table = self.q_table_sarsa
 
             while not done:
@@ -201,9 +220,9 @@ class MazeEnv(gym.Env):
 
                 next_state, reward, done, _, _ = self.step(action)
 
-                if algorithm == "q-learning":
+                if self.algorithm == "q-learning":
                     self.update_q_value_qlearning(state, action, reward, next_state)
-                elif algorithm == "sarsa":
+                elif self.algorithm == "sarsa":
                     next_action = self.choose_action(next_state, self.q_table_sarsa)
                     self.update_q_value_sarsa(state, action, reward, next_state, next_action)
                     action = next_action
@@ -216,7 +235,7 @@ class MazeEnv(gym.Env):
 
                 # Move to the next state
                 state = next_state
-                total_reward += reward
+                self.total_reward += reward
 
                 # # Render the environment to show training progress
                 # self.render()
@@ -224,8 +243,8 @@ class MazeEnv(gym.Env):
                 # # Add a small delay for better visualization (adjust as needed)
                 # time.sleep(sleep_sec)
 
-            rewards.append(total_reward)
-            print(f"Episode {episode + 1}: Total Reward: {total_reward}")
+            rewards.append(self.total_reward)
+            print(f"Episode {episode + 1}: Total Reward: {self.total_reward}")
 
         return rewards
 

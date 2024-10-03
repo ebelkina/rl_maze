@@ -26,12 +26,16 @@ maze = [
 ]
 
 # Initialize the environment using gym.make
-env = gym.make('Maze_v10', maze=maze)
-obs = env.reset()
-env.render()
+env_q = gym.make('Maze_v10', maze=maze, algorithm="q-learning")
+obs_q = env_q.reset()
+env_q.render()
 # env.train(episodes=100, sleep_sec=0.05)  # sleep_sec=0.05
-q_rewards = env.train(episodes=10, algorithm="q-learning")#, sleep_sec=0.05)
-sarsa_rewards = env.train(episodes=10, algorithm="sarsa")#, sleep_sec=0.05)
+q_rewards = env_q.train(episodes=10)#, sleep_sec=0.05)
+
+env_sarsa = gym.make('Maze_v10', maze=maze, algorithm="sarsa")
+obs_sarsa = env_sarsa.reset()
+env_sarsa.render()
+sarsa_rewards = env_sarsa.train(episodes=10)#, sleep_sec=0.05)
 #
 # # Visualize the learned path after training
 # env.visualize_learned_path() TODO
