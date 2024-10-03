@@ -7,7 +7,7 @@ from gym.envs.registration import register
 import time
 
 class MazeEnv(gym.Env):
-    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1, algorithm="random"):
+    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1, algorithm="random", experiment=0):
         super(MazeEnv, self).__init__()
         self.maze = np.array(maze)
         self.start_pos = (int(np.where(self.maze == 'S')[0]), int(np.where(self.maze == 'S')[1]))
@@ -51,6 +51,7 @@ class MazeEnv(gym.Env):
 
         self.episode = 0 # TODO
         self.total_reward = 0
+        self.experiment = experiment
 
     def reset(self, **kwargs):
         self.current_pos = self.start_pos
@@ -150,13 +151,15 @@ class MazeEnv(gym.Env):
 
         # Display the algorithm name, episode number, and total reward
         algorithm_text = self.font.render(f'Algorithm: {self.algorithm}', True, (0, 0, 0))
+        experiment_text = self.font.render(f'Experiment: {self.experiment}', True, (0, 0, 0))
         episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
         reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
 
         # Render the text under the button
-        self.screen.blit(algorithm_text, (text_x, text_y_start))
-        self.screen.blit(episode_text, (text_x + 10, text_y_start + 30))  # 30 pixels below the previous line
-        self.screen.blit(reward_text, (text_x, text_y_start + 60))  # 30 pixels below the previous line
+        self.screen.blit(algorithm_text, (text_x + 10, text_y_start))
+        self.screen.blit(experiment_text, (text_x + 10, text_y_start + 30))
+        self.screen.blit(episode_text, (text_x + 10, text_y_start + 60))  # 30 pixels below the previous line
+        self.screen.blit(reward_text, (text_x + 10, text_y_start + 90))  # 30 pixels below the previous line
 
         pygame.display.update()
 
@@ -189,9 +192,13 @@ class MazeEnv(gym.Env):
         elif self.algorithm == "q-learning" or self.algorithm == "sarsa" and q_table is not None:
             if np.random.uniform(0, 1) < self.epsilon:  # TODO not for q-learning?
                 return self.action_space.sample()  # Explore
-            else:
+            else: # Exploit
                 row, col = state
-                return np.argmax(q_table[row, col])  # Exploit
+                max_value = np.max(q_table[row, col])  # Find the max Q-value
+                # Get all actions that have the max Q-value
+                max_actions = np.where(q_table[row, col] == max_value)[0]
+                # Randomly choose one of the actions that have the max Q-value
+                return np.random.choice(max_actions)
 
     def update_q_value_qlearning(self, state, action, reward, next_state):
         row, col = state
@@ -200,7 +207,9 @@ class MazeEnv(gym.Env):
         # td_target = reward + self.gamma * self.q_table[next_row, next_col, best_next_action]
         # td_error = td_target - self.q_table[row, col, action]
         # self.q_table[row, col, action] += self.alpha * td_error
-        self.q_table[row, col, action] += self.alpha * (reward + self.gamma * self.q_table[next_row, next_col, best_next_action] - self.q_table[row, col, action])
+        self.q_table[row, col, action] += self.alpha * (reward +
+                                                        self.gamma * self.q_table[next_row, next_col, best_next_action] -
+                                                        self.q_table[row, col, action])
 
     def update_q_value_sarsa(self, state, action, reward, next_state, next_action):
         row, col = state
