@@ -45,10 +45,10 @@ rewards_sarsa = env_sarsa.train(episodes, sleep_sec)
 # env_policy_gradient.render()
 # rewards_policy_gradient = env_policy_gradient.train(episodes, sleep_sec)
 
-env_random = gym.make('Maze_v11', maze=maze, algorithm="random") # TODO same env?
-obs_random = env_random.reset()
-env_random.render()
-rewards_random = env_random.train(episodes, sleep_sec)
+# env_random = gym.make('Maze_v11', maze=maze, algorithm="random") # TODO same env?
+# obs_random = env_random.reset()
+# env_random.render()
+# rewards_random = env_random.train(episodes, sleep_sec)
 #
 # # Visualize the learned path after training
 # env.visualize_learned_path() TODO
@@ -58,7 +58,7 @@ rewards_random = env_random.train(episodes, sleep_sec)
 plt.plot(rewards_q, label='Q-learning')
 plt.plot(rewards_sarsa, label='SARSA')
 # plt.plot(rewards_policy_gradient, label='policy_gradient')
-plt.plot(rewards_random, label='random')
+# plt.plot(rewards_random, label='random')
 plt.xlabel('Episodes')
 plt.ylabel('Total Rewards')
 plt.legend()

@@ -123,17 +123,17 @@ class MazeEnv(gym.Env):
                     pygame.draw.rect(self.screen, 'blue', (cell_left, cell_top, self.cell_size, self.cell_size))
                 elif (row, col) == self.end_goal_pos:
                     pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size))
-                # else:
-                #     # Get max Q-value for the current cell
-                #     max_q_value = np.max(self.q_table[row, col])
-                #     # Map Q-value to a color
-                #     cell_color = self.get_q_value_color(max_q_value)
-                #     pygame.draw.rect(self.screen, cell_color, (cell_left, cell_top, self.cell_size, self.cell_size))
-                #
-                #     # Display the Q-value as text
-                #     q_value_text = self.font.render(f'{max_q_value:.2f}', True, (0, 0, 0))
-                #     text_rect = q_value_text.get_rect(center=cell_center)
-                #     self.screen.blit(q_value_text, text_rect)
+                else:
+                    # Get max Q-value for the current cell
+                    max_q_value = np.max(self.q_table[row, col])
+                    # Map Q-value to a color
+                    cell_color = self.get_q_value_color(max_q_value)
+                    pygame.draw.rect(self.screen, cell_color, (cell_left, cell_top, self.cell_size, self.cell_size))
+
+                    # Display the Q-value as text
+                    q_value_text = self.font.render(f'{max_q_value:.2f}', True, (0, 0, 0))
+                    text_rect = q_value_text.get_rect(center=cell_center)
+                    self.screen.blit(q_value_text, text_rect)
 
                 # Draw the agent's current position as a yellow circle
                 if np.array_equal(np.array(self.current_pos), np.array([row, col])):
@@ -187,7 +187,7 @@ class MazeEnv(gym.Env):
 
 
         elif self.algorithm == "q-learning" or self.algorithm == "sarsa" and q_table is not None:
-            if np.random.uniform(0, 1) < self.epsilon:
+            if np.random.uniform(0, 1) < self.epsilon:  # TODO not for q-learning?
                 return self.action_space.sample()  # Explore
             else:
                 row, col = state
@@ -197,9 +197,10 @@ class MazeEnv(gym.Env):
         row, col = state
         next_row, next_col = next_state
         best_next_action = np.argmax(self.q_table[next_row, next_col])
-        td_target = reward + self.gamma * self.q_table[next_row, next_col, best_next_action]
-        td_error = td_target - self.q_table[row, col, action]
-        self.q_table[row, col, action] += self.alpha * td_error
+        # td_target = reward + self.gamma * self.q_table[next_row, next_col, best_next_action]
+        # td_error = td_target - self.q_table[row, col, action]
+        # self.q_table[row, col, action] += self.alpha * td_error
+        self.q_table[row, col, action] += self.alpha * (reward + self.gamma * self.q_table[next_row, next_col, best_next_action] - self.q_table[row, col, action])
 
     def update_q_value_sarsa(self, state, action, reward, next_state, next_action):
         row, col = state
