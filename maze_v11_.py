@@ -1,7 +1,7 @@
 import gym
 import pygame
 from matplotlib import pyplot as plt
-
+import numpy as np
 from maze_v11 import MazeEnv
 
 # Register the custom environment
@@ -24,55 +24,11 @@ maze = [
     [1, 0, 0, 0, 0, 0, 1, 'E', 0, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ]
-#
-# episodes = 10
-# sleep_sec = 0
-# # sleep_sec = 0.05
-#
-# # Initialize the environment
-# env_q = gym.make('Maze_v11', maze=maze, algorithm="q-learning")
-# obs_q = env_q.reset()
-# env_q.render()
-# rewards_q = env_q.train(episodes, sleep_sec)
-#
-# env_sarsa = gym.make('Maze_v11', maze=maze, algorithm="sarsa") # TODO same env?
-# obs_sarsa = env_sarsa.reset()
-# env_sarsa.render()
-# rewards_sarsa = env_sarsa.train(episodes, sleep_sec)
-#
-# # env_policy_gradient = gym.make('Maze_v11', maze=maze, algorithm="policy_gradient") # TODO same env?
-# # obs_policy_gradient = env_policy_gradient.reset()
-# # env_policy_gradient.render()
-# # rewards_policy_gradient = env_policy_gradient.train(episodes, sleep_sec)
-#
-# # env_random = gym.make('Maze_v11', maze=maze, algorithm="random") # TODO same env?
-# # obs_random = env_random.reset()
-# # env_random.render()
-# # rewards_random = env_random.train(episodes, sleep_sec)
-# #
-# # # Visualize the learned path after training
-# # env.visualize_learned_path() TODO
-#
-#
-# # Plotting the rewards over episodes for comparison
-# plt.plot(rewards_q, label='Q-learning')
-# plt.plot(rewards_sarsa, label='SARSA')
-# # plt.plot(rewards_policy_gradient, label='policy_gradient')
-# # plt.plot(rewards_random, label='random')
-# plt.xlabel('Episodes')
-# plt.ylabel('Total Rewards')
-# plt.legend()
-# plt.show()
-
-############################################
-import numpy as np
-import matplotlib.pyplot as plt
-import gym
 
 # Parameters
-episodes = 10
+episodes = 20
 sleep_sec = 0
-num_experiments = 2
+num_experiments = 100
 algorithms = ["q-learning", "sarsa"]  # Add more algorithms as needed: "policy_gradient", "random"
 
 # Initialize a dictionary to store the results for each algorithm
@@ -107,8 +63,15 @@ for alg in algorithms:
     std_rewards[alg] = np.std(results[alg], axis=0)
 
 # Plot the results with error bars
+# for alg in algorithms:
+#     plt.errorbar(range(episodes), mean_rewards[alg], yerr=std_rewards[alg], label=alg, capsize=5)
+
 for alg in algorithms:
-    plt.errorbar(range(episodes), mean_rewards[alg], yerr=std_rewards[alg], label=alg, capsize=5)
+    plt.plot(range(episodes), mean_rewards[alg], label=alg)
+    plt.fill_between(range(episodes),
+                     mean_rewards[alg] - std_rewards[alg],
+                     mean_rewards[alg] + std_rewards[alg],
+                     alpha=0.2)  # alpha controls transparency
 
 plt.xlabel('Episodes')
 plt.ylabel('Total Rewards')
