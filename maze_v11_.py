@@ -75,25 +75,25 @@ sleep_sec = 0
 num_experiments = 2
 algorithms = ["q-learning", "sarsa"]  # Add more algorithms as needed: "policy_gradient", "random"
 
-
-
 # Initialize a dictionary to store the results for each algorithm
 results = {alg: [] for alg in algorithms}
 
 # Run the experiments for each algorithm 100 times
 for alg in algorithms:
-    rewards = []
     for experiment in range(1, num_experiments+1):
+        rewards = []
         # Create environment for the current algorithm
         env = gym.make('Maze_v11', maze=maze, algorithm=alg, experiment=experiment)
         env.reset()
         env.render()
-        rewards.append(env.train(episodes, sleep_sec))
+        # rewards.append(env.train(episodes, sleep_sec))
         # return np.array(rewards)
         # rewards = run_experiment(env, episodes, sleep_sec)
+        # Collect rewards over episodes for this experiment
+        rewards = env.train(episodes, sleep_sec)
         results[alg].append(rewards)
 
-print(results)
+# print(results)
 # Convert lists to numpy arrays for easy computation
 for alg in algorithms:
     results[alg] = np.array(results[alg])

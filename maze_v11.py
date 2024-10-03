@@ -279,7 +279,7 @@ class MazeEnv(gym.Env):
                 # time.sleep(sleep_sec)
 
             rewards.append(self.total_reward)
-            print(f"Episode {episode + 1}: Total Reward: {self.total_reward}")
+            # print(f"Episode {episode + 1}: Total Reward: {self.total_reward}")
 
         return rewards
 
