@@ -7,7 +7,7 @@ from gym.envs.registration import register
 import time
 
 class MazeEnv(gym.Env):
-    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1, algorithm="random", experiment=0):
+    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1, algorithm="random", experiment=0, show=True):
         super(MazeEnv, self).__init__()
         self.maze = np.array(maze)
         self.start_pos = (int(np.where(self.maze == 'S')[0]), int(np.where(self.maze == 'S')[1]))
@@ -52,6 +52,7 @@ class MazeEnv(gym.Env):
         self.episode = 0 # TODO
         self.total_reward = 0
         self.experiment = experiment
+        self.show = show
 
     def reset(self, **kwargs):
         self.current_pos = self.start_pos
@@ -263,7 +264,8 @@ class MazeEnv(gym.Env):
                     pass  # No update for random walk
 
                 # Render the environment to show training progress
-                self.render()
+                if self.show:
+                    self.render()
 
                 # Add a small delay for better visualization (adjust as needed)
                 time.sleep(sleep_sec)

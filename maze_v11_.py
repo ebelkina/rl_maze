@@ -29,6 +29,7 @@ maze = [
 episodes = 20
 sleep_sec = 0
 num_experiments = 100
+show = False
 algorithms = ["q-learning", "sarsa"]  # Add more algorithms as needed: "policy_gradient", "random"
 
 # Initialize a dictionary to store the results for each algorithm
@@ -39,7 +40,7 @@ for alg in algorithms:
     for experiment in range(1, num_experiments+1):
         rewards = []
         # Create environment for the current algorithm
-        env = gym.make('Maze_v11', maze=maze, algorithm=alg, experiment=experiment)
+        env = gym.make('Maze_v11', maze=maze, algorithm=alg, experiment=experiment, show=show)
         env.reset()
         env.render()
         # rewards.append(env.train(episodes, sleep_sec))
