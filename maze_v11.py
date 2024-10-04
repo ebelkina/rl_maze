@@ -1,3 +1,5 @@
+import random
+
 import gym
 from gym import spaces
 import numpy as np
@@ -53,6 +55,7 @@ class MazeEnv(gym.Env):
         self.total_reward = 0
         self.experiment = experiment
         self.show = show
+        # self.seed = np.random.seed(experiment) # TODO
 
     def reset(self, **kwargs):
         self.current_pos = self.start_pos
@@ -227,6 +230,8 @@ class MazeEnv(gym.Env):
         self.policy_table[row, col] /= np.sum(self.policy_table[row, col])  # Normalize to ensure valid probabilities
 
     def train(self, episodes=100, sleep_sec=0):
+        random.seed(self.experiment)
+        np.random.seed(self.experiment)
         rewards = []
         for episode in range(1, episodes+1):
             self.episode = episode
