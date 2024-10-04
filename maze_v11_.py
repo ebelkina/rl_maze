@@ -12,7 +12,7 @@ gym.register(
 )
 
 # Define the maze
-maze = [
+maze_10x10 = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, 'S', 1, 0, 0, 0, 1, 0, 0, 1],
     [1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
@@ -25,57 +25,94 @@ maze = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ]
 
+maze_50x50 = [
+    # [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    # [1, 'S', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    # [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+    [1, "S", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, "G", 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "E", 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+]
+
+
 # Parameters
-episodes = 20
+maze=maze_10x10
+episodes = 10
 sleep_sec = 0
-num_experiments = 100
-show = False
+num_experiments = 10
+show = True
 algorithms = ["q-learning", "sarsa"]  # Add more algorithms as needed: "policy_gradient", "random"
+epsilons = [0, 0.1]
 
 # Initialize a dictionary to store the results for each algorithm
-results = {alg: [] for alg in algorithms}
+results = {(alg, eps): [] for alg in algorithms for eps in epsilons}
 
 # Run the experiments for each algorithm 100 times
-for alg in algorithms:
-    for experiment in range(1, num_experiments+1):
-        rewards = []
-        # Create environment for the current algorithm
-        env = gym.make('Maze_v11', maze=maze, algorithm=alg, experiment=experiment, show=show)
-        env.reset()
-        env.render()
-        # rewards.append(env.train(episodes, sleep_sec))
-        # return np.array(rewards)
-        # rewards = run_experiment(env, episodes, sleep_sec)
-        # Collect rewards over episodes for this experiment
-        rewards = env.train(episodes, sleep_sec)
-        results[alg].append(rewards)
+for eps in epsilons:
+    for alg in algorithms:
+        for experiment in range(1, num_experiments+1):
+            rewards = []
+            # Create environment for the current algorithm
+            env = gym.make('Maze_v11', maze=maze, epsilon=eps, algorithm=alg, experiment=experiment, show=show)
+            env.reset()
+            env.render()
+            # rewards.append(env.train(episodes, sleep_sec))
+            # return np.array(rewards)
+            # rewards = run_experiment(env, episodes, sleep_sec)
+            # Collect rewards over episodes for this experiment
+            rewards = env.train(episodes, sleep_sec)
+            # Append rewards for this experiment to the results dictionary
+            results[(alg, eps)].append(rewards)
 
 # print(results)
 # Convert lists to numpy arrays for easy computation
-for alg in algorithms:
-    results[alg] = np.array(results[alg])
+for key in results:
+    results[key] = np.array(results[key])
 
 # Calculate the average and standard deviation of rewards across the experiments
 mean_rewards = {}
 std_rewards = {}
 
-for alg in algorithms:
-    mean_rewards[alg] = np.mean(results[alg], axis=0)
-    std_rewards[alg] = np.std(results[alg], axis=0)
+for key in results:
+    mean_rewards[key] = np.mean(results[key], axis=0)
+    std_rewards[key] = np.std(results[key], axis=0)
 
-# Plot the results with error bars
-# for alg in algorithms:
-#     plt.errorbar(range(episodes), mean_rewards[alg], yerr=std_rewards[alg], label=alg, capsize=5)
+# Plot the results with shaded areas for standard deviation
+plt.figure()
 
-for alg in algorithms:
-    plt.plot(range(episodes), mean_rewards[alg], label=alg)
-    plt.fill_between(range(episodes),
-                     mean_rewards[alg] - std_rewards[alg],
-                     mean_rewards[alg] + std_rewards[alg],
-                     alpha=0.2)  # alpha controls transparency
+for eps in epsilons:
+    for alg in algorithms:
+        label = f"{alg} {eps})"
+        plt.plot(range(episodes), mean_rewards[(alg, eps)], label=label)
+        plt.fill_between(range(episodes),
+                         mean_rewards[(alg, eps)] - std_rewards[(alg, eps)],
+                         mean_rewards[(alg, eps)] + std_rewards[(alg, eps)],
+                         alpha=0.2)  # alpha controls transparency
 
 plt.xlabel('Episodes')
 plt.ylabel('Total Rewards')
-plt.legend()
-plt.title('Average Total Rewards with Standard Deviations')
+plt.legend(loc='lower right')
+plt.title('Average Total Rewards with Standard Deviations for Different Epsilons')
+plt.grid(which='major', linestyle='--', linewidth=0.75)
 plt.show()
