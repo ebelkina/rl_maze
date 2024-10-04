@@ -245,6 +245,9 @@ class MazeEnv(gym.Env):
             elif self.algorithm == "sarsa":
                 q_table = self.q_table
 
+            taken_actions = [state]
+            rewards_episode = []
+
             while not done:
                 # Handle button events
                 self.handle_events()
@@ -274,10 +277,12 @@ class MazeEnv(gym.Env):
 
                 # Add a small delay for better visualization (adjust as needed)
                 time.sleep(sleep_sec)
+                rewards_episode.append(reward)
 
                 # Move to the next state
                 state = next_state
                 self.total_reward += reward
+                taken_actions.append(next_state)
 
                 # # Render the environment to show training progress
                 # self.render()
@@ -285,6 +290,11 @@ class MazeEnv(gym.Env):
                 # # Add a small delay for better visualization (adjust as needed)
                 # time.sleep(sleep_sec)
 
+            print('total_reward', self.total_reward)
+            print('taken_actions: ', taken_actions)
+            print('rewards_episode: ', rewards_episode)
+
+            self.reached_goals = set()
             rewards.append(self.total_reward)
             # print(f"Episode {episode + 1}: Total Reward: {self.total_reward}")
 
