@@ -36,7 +36,7 @@ maze[1][3] = 'G'
 episodes = 100
 
 sleep_sec = 0
-# sleep_sec = 0.05
+sleep_sec = 0.05
 
 num_experiments = 1 # equal seed
 show = True
