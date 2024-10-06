@@ -56,6 +56,8 @@ class MazeEnv(gym.Env):
         self.experiment = experiment
         self.show = show
         # self.seed = np.random.seed(experiment) # TODO
+        self.done = False
+        self.path = []
 
     def reset(self, **kwargs):
         self.current_pos = self.start_pos
@@ -74,9 +76,9 @@ class MazeEnv(gym.Env):
         next_pos = (self.current_pos[0] + actions_map[action][0], self.current_pos[1] + actions_map[action][1])
 
         reward = -1 # Small penalty for regular movement to encourage efficiency
-        done = False
+        self.done = False # TODO redudant?
 
-        # Check if next state is within the maze bounds
+        # Check if next state is within the maze bounds TODO not necessary
         if (0 <= next_pos[0] < self.num_rows) and (0 <= next_pos[1] < self.num_cols):
             # Check if the next state is a wall
             if self.maze[next_pos[0], next_pos[1]] == '1':
@@ -92,16 +94,17 @@ class MazeEnv(gym.Env):
                     self.reached_goals.add(self.sub_goal_pos)  # Mark sub-goal as reached TODO just flag?
 
                 # Check if agent reaches the final goal
-                elif next_pos == self.end_goal_pos and self.sub_goal_pos in self.reached_goals:
-                    reward = 100  # Reward for reaching the final goal
-                    done = True # TODO add in reached goals?
+                elif next_pos == self.end_goal_pos:
+                    if self.sub_goal_pos in self.reached_goals:
+                        reward = 100  # Reward for reaching the final goal
+                    self.done = True # TODO add in reached goals?
 
         else:
             # If the agent tries to move out of bounds, stay in place and apply penalty TODO walls everythere >> no needed?
             reward = -100
             next_pos = self.current_pos  # Stay in the same place
 
-        return np.array(self.current_pos), reward, done, None, {}
+        return np.array(self.current_pos), reward, self.done, None, {}
 
     def get_q_value_color(self, q_value):
         """ Map a Q-value to a color between white (low Q) and middle gray (high Q). """
@@ -135,10 +138,25 @@ class MazeEnv(gym.Env):
                     cell_color = self.get_q_value_color(max_q_value)
                     pygame.draw.rect(self.screen, cell_color, (cell_left, cell_top, self.cell_size, self.cell_size))
 
-                    # Display the Q-value as text
-                    q_value_text = self.font.render(f'{max_q_value:.2f}', True, (0, 0, 0))
-                    text_rect = q_value_text.get_rect(center=cell_center)
-                    self.screen.blit(q_value_text, text_rect)
+                    # # Display the Q-value as text
+                    # q_value_text = self.font.render(f'{max_q_value:.2f}', True, 'black')
+                    # text_rect = q_value_text.get_rect(center=cell_center)
+                    # self.screen.blit(q_value_text, text_rect)
+
+                # Mark path if Done
+                max_q_value = np.max(self.q_table[row, col])
+                color_q_value = 'black'
+                if any(np.array_equal((row, col), np.array(p)) for p in self.path):
+                    color_q_value = 'red'
+                q_value_text = self.font.render(f'{max_q_value:.2f}', True, color_q_value)
+                text_rect = q_value_text.get_rect(center=cell_center)
+                self.screen.blit(q_value_text, text_rect)
+
+                ###
+                # if self.done:
+                #     for cell in self.path:
+                #         if np.array_equal(cell, (row, col)):
+                #             pygame.draw.circle(self.screen, 'red', cell_center, self.cell_size // 10)
 
                 # Draw the agent's current position as a yellow circle
                 if np.array_equal(np.array(self.current_pos), np.array([row, col])):
@@ -146,24 +164,26 @@ class MazeEnv(gym.Env):
 
         # Draw the pause button
         pygame.draw.rect(self.screen, self.button_color, self.button_rect)
-        button_text = self.font.render('Pause' if not self.is_paused else 'Resume', True, (0, 0, 0))
+        button_text = self.font.render('Pause' if not self.is_paused else 'Resume', True, 'black')
         self.screen.blit(button_text, button_text.get_rect(center=self.button_rect.center))
 
         # Calculate the position below the button to place the text
         text_x = self.button_rect.left  # Align text with left edge of the button
         text_y_start = self.button_rect.bottom + 10  # Start the text 10 pixels below the bottom of the button
 
-        # Display the algorithm name, episode number, and total reward
+        # Display information about train process
         algorithm_text = self.font.render(f'Algorithm: {self.algorithm}', True, (0, 0, 0))
         experiment_text = self.font.render(f'Experiment: {self.experiment}', True, (0, 0, 0))
-        episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
-        reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
-
-        # Render the text under the button
         self.screen.blit(algorithm_text, (text_x + 10, text_y_start))
         self.screen.blit(experiment_text, (text_x + 10, text_y_start + 30))
-        self.screen.blit(episode_text, (text_x + 10, text_y_start + 60))  # 30 pixels below the previous line
-        self.screen.blit(reward_text, (text_x + 10, text_y_start + 90))  # 30 pixels below the previous line
+
+        if self.show:
+            episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
+            reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
+            reached_goals_text = self.font.render(f'Reached goals: {self.reached_goals}', True, (0, 0, 0))
+            self.screen.blit(episode_text, (text_x + 10, text_y_start + 60))
+            self.screen.blit(reward_text, (text_x + 10, text_y_start + 90))
+            self.screen.blit(reached_goals_text, (text_x + 10, text_y_start + 120))
 
         pygame.display.update()
 
@@ -201,6 +221,8 @@ class MazeEnv(gym.Env):
                 max_value = np.max(q_table[row, col])  # Find the max Q-value
                 # Get all actions that have the max Q-value
                 max_actions = np.where(q_table[row, col] == max_value)[0]
+                print(q_table[row, col])
+                print('max', max_value)
                 # Randomly choose one of the actions that have the max Q-value
                 return np.random.choice(max_actions)
 
@@ -232,12 +254,13 @@ class MazeEnv(gym.Env):
     def train(self, episodes=100, sleep_sec=0):
         random.seed(self.experiment)
         np.random.seed(self.experiment)
-        rewards = []
+        total_rewards = []
         for episode in range(1, episodes+1):
             self.episode = episode
             state = self.reset()
-            done = False
+            self.done = False
             self.total_reward = 0
+            self.reached_goals = set()  # TODO
 
             q_table = None
             if self.algorithm == "q-learning":
@@ -245,12 +268,13 @@ class MazeEnv(gym.Env):
             elif self.algorithm == "sarsa":
                 q_table = self.q_table
 
-            taken_actions = [state]
+            self.path = [state]
             rewards_episode = []
 
-            while not done:
+            while not self.done:
                 # Handle button events
                 self.handle_events()
+                # print('reached_goals', self.reached_goals)
 
                 # Check if the game is paused
                 if self.is_paused:
@@ -258,7 +282,7 @@ class MazeEnv(gym.Env):
 
                 action = self.choose_action(state, q_table)
 
-                next_state, reward, done, _, _ = self.step(action)
+                next_state, reward, self.done, _, _ = self.step(action)
 
                 if self.algorithm == "q-learning":
                     self.update_q_value_qlearning(state, action, reward, next_state)
@@ -277,12 +301,13 @@ class MazeEnv(gym.Env):
 
                 # Add a small delay for better visualization (adjust as needed)
                 time.sleep(sleep_sec)
-                rewards_episode.append(reward)
 
                 # Move to the next state
                 state = next_state
                 self.total_reward += reward
-                taken_actions.append(next_state)
+
+                self.path.append(next_state)
+                rewards_episode.append(reward)
 
                 # # Render the environment to show training progress
                 # self.render()
@@ -291,14 +316,15 @@ class MazeEnv(gym.Env):
                 # time.sleep(sleep_sec)
 
             print('total_reward', self.total_reward)
-            print('taken_actions: ', taken_actions)
+            print('path: ', self.path)
             print('rewards_episode: ', rewards_episode)
+            print('reached_goals', self.reached_goals)
 
-            self.reached_goals = set()
-            rewards.append(self.total_reward)
+            # self.reached_goals = set()
+            total_rewards.append(self.total_reward)
             # print(f"Episode {episode + 1}: Total Reward: {self.total_reward}")
 
-        return rewards
+        return total_rewards
 
     def visualize_learned_path(self):
         # Reset the environment to the start position
