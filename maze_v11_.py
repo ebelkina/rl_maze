@@ -29,19 +29,19 @@ maze = [
 
 # Set sub-gaol
 # maze[5][3] = 'G' # initial
-maze[1][3] = 'G'
+maze[1][4] = 'G'
 # maze[7][3] = 'G'
 
 # Parameters
 episodes = 100
 
 sleep_sec = 0
-sleep_sec = 0.05
+# sleep_sec = 0.05
 
 num_experiments = 1 # equal seed
 show = True
-
 # show = False
+
 algorithms = ["q-learning"]
 # algorithms = ["q-learning", "sarsa"]
 

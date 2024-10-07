@@ -58,27 +58,7 @@ class MazeEnv(gym.Env):
         # self.seed = np.random.seed(experiment) # TODO
         self.done = False
         self.path = []
-
-        self.arrow_up = pygame.image.load('arrow_up.png')
-        self.arrow_down = pygame.image.load('arrow_down.png')
-        self.arrow_left = pygame.image.load('arrow_left.png')
-        self.arrow_right = pygame.image.load('arrow_right.png')
-
-        # def load_arrow_images(self):
-        #     """ Load arrow images for different directions. """
-        #     self.arrow_up = pygame.image.load('arrow_up.png')
-        #     self.arrow_down = pygame.image.load('arrow_down.png')
-        #     self.arrow_left = pygame.image.load('arrow_left.png')
-        #     self.arrow_right = pygame.image.load('arrow_right.png')
-        #
-        #     # Optionally, scale them to a base size
-        #     base_size = (self.cell_size // 4, self.cell_size // 4)
-        #     self.arrow_up = pygame.transform.scale(self.arrow_up, base_size)
-        #     self.arrow_down = pygame.transform.scale(self.arrow_down, base_size)
-        #     self.arrow_left = pygame.transform.scale(self.arrow_left, base_size)
-        #     self.arrow_right = pygame.transform.scale(self.arrow_right, base_size)
-        #
-        # self.load_arrow_images()
+        self.image_counter = 1
 
     def reset(self, **kwargs):
         self.current_pos = self.start_pos
@@ -104,22 +84,22 @@ class MazeEnv(gym.Env):
             # Check if the next state is a wall
             if self.maze[next_pos[0], next_pos[1]] == '1':
                 reward = -100  # Penalty for hitting a wall
-                next_pos = self.current_pos  # Stay in the same place if hitting a wall
+                # next_pos = self.current_pos  # Stay in the same place if hitting a wall
+                # next_pos = self.start_pos
+                # self.done = True
             else:
                 # Update the position
                 self.current_pos = next_pos
 
                 # Check if agent reaches the sub-goal
                 if next_pos == self.sub_goal_pos and self.sub_goal_pos not in self.reached_goals:
-                    reward = 5  # Reward for reaching the sub-goal TODO +50 only 1st time?
+                    # reward = 50  # Reward for reaching the sub-goal TODO +50 only 1st time?
                     self.reached_goals.add(self.sub_goal_pos)  # Mark sub-goal as reached TODO just flag?
 
                 # Check if agent reaches the final goal
                 elif next_pos == self.end_goal_pos:
                     if self.sub_goal_pos in self.reached_goals:
                         reward = 100  # Reward for reaching the final goal
-                    # else:
-                    #     reward = 20
                     self.done = True # TODO add in reached goals?
 
         else:
@@ -130,85 +110,88 @@ class MazeEnv(gym.Env):
         return np.array(self.current_pos), reward, self.done, None, {}
 
     def get_q_value_color(self, q_value):
-        """ Map a Q-value to a color based on the current Q-table. """
-        # Dynamically calculate the min and max Q-values from the Q-table
-        q_min = np.min(self.q_table)  # Minimum Q-value in the entire Q-table
-        q_max = np.max(self.q_table)  # Maximum Q-value in the entire Q-table
-
-        # Normalize Q-value
-        if q_max == q_min:
-            normalized_q_value = 0.5  # Avoid division by zero, set it to a neutral value
-        else:
-            normalized_q_value = (q_value - q_min) / (q_max - q_min)
-
-        # Map the normalized value to a color
-        r = int(255 * (1 - normalized_q_value))  # Red decreases as Q-value increases
-        g = int(255 * normalized_q_value)  # Green increases as Q-value increases
-        return (r, g, 0)  # Return a color ranging from red to green
+        """ Map a Q-value to a color between white (low Q) and middle gray (high Q). """
+        # Normalize Q-value to a range between 0 and 1
+        normalized_q = (q_value - np.min(self.q_table)) / (np.max(self.q_table) - np.min(self.q_table) + 1e-5)
+        # Interpolate between white (low) and middle gray (high)
+        gray_value = int(255 - (normalized_q * (255 - 150)))  # The higher the Q-value, the closer to middle gray
+        return (gray_value, gray_value, gray_value)
 
     def render(self):
         self.screen.fill((255, 255, 255))
-
-        # Define the offset for positioning arrows within the cell
-        arrow_offset = self.cell_size // 4  # Adjust this value if needed
-
         for row in range(self.num_rows):
             for col in range(self.num_cols):
                 cell_left = col * self.cell_size
                 cell_top = row * self.cell_size
                 cell_center = (col * self.cell_size + self.cell_size // 2, row * self.cell_size + self.cell_size // 2)
 
-                # Get the Q-values for the current cell
-                q_values = self.q_table[row, col]
+                # Check for walls, start, sub-goal, and end goal
+                if self.maze[row, col] == '1':
+                    pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size))
+                elif (row, col) == self.start_pos:
+                    pygame.draw.rect(self.screen, 'green', (cell_left, cell_top, self.cell_size, self.cell_size))
+                elif (row, col) == self.sub_goal_pos:
+                    pygame.draw.rect(self.screen, 'blue', (cell_left, cell_top, self.cell_size, self.cell_size))
+                elif (row, col) == self.end_goal_pos:
+                    pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size))
+                else:
+                    # Get max Q-value for the current cell
+                    max_q_value = np.max(self.q_table[row, col])
+                    # Map Q-value to a color
+                    cell_color = self.get_q_value_color(max_q_value)
+                    pygame.draw.rect(self.screen, cell_color, (cell_left, cell_top, self.cell_size, self.cell_size))
 
-                # Define arrow images
-                arrow_images = [self.arrow_right, self.arrow_left, self.arrow_down, self.arrow_up]
+                    # # Display the Q-value as text
+                    # q_value_text = self.font.render(f'{max_q_value:.2f}', True, 'black')
+                    # text_rect = q_value_text.get_rect(center=cell_center)
+                    # self.screen.blit(q_value_text, text_rect)
 
-                # Draw arrows based on Q-values
-                for i, q_value in enumerate(q_values):
-                    # Calculate min and max Q-values
-                    q_min = np.min(self.q_table)
-                    q_max = np.max(self.q_table)
+                # Mark path if Done
+                max_q_value = np.max(self.q_table[row, col])
+                color_q_value = 'black'
+                if any(np.array_equal((row, col), np.array(p)) for p in self.path):
+                    color_q_value = 'red'
+                q_value_text = self.font.render(f'{max_q_value:.2f}', True, color_q_value)
+                text_rect = q_value_text.get_rect(center=cell_center)
+                self.screen.blit(q_value_text, text_rect)
 
-                    # Scale the size of the arrow based on Q-value
-                    max_arrow_size = self.cell_size // 2
-                    min_arrow_size = self.cell_size // 10
-
-                    if q_max == q_min:
-                        arrow_size = min_arrow_size  # Avoid division by zero by setting to a minimum size
-                    else:
-                        arrow_size = int(
-                            min_arrow_size + (q_value - q_min) / (q_max - q_min) * (max_arrow_size - min_arrow_size))
-
-                    # Scale the arrow image
-                    scaled_arrow_image = pygame.transform.scale(arrow_images[i], (arrow_size, arrow_size))
-
-                    # Position the arrow image
-                    if i == 0:  # Right
-                        self.screen.blit(scaled_arrow_image,
-                                         (cell_center[0] + arrow_offset // 2, cell_center[1] - arrow_size // 2))
-                    elif i == 1:  # Left
-                        self.screen.blit(scaled_arrow_image,
-                                         (cell_center[0] - arrow_offset, cell_center[1] - arrow_size // 2))
-                    elif i == 2:  # Down
-                        self.screen.blit(scaled_arrow_image,
-                                         (cell_center[0] - arrow_size // 2, cell_center[1] + arrow_offset // 4))
-                    elif i == 3:  # Up
-                        self.screen.blit(scaled_arrow_image,
-                                         (cell_center[0] - arrow_size // 2, cell_center[1] - arrow_offset))
+                ###
+                # if self.done:
+                #     for cell in self.path:
+                #         if np.array_equal(cell, (row, col)):
+                #             pygame.draw.circle(self.screen, 'red', cell_center, self.cell_size // 10)
 
                 # Draw the agent's current position as a yellow circle
                 if np.array_equal(np.array(self.current_pos), np.array([row, col])):
                     pygame.draw.circle(self.screen, 'yellow', cell_center, self.cell_size // 4)
 
+        # Draw the pause button
+        pygame.draw.rect(self.screen, self.button_color, self.button_rect)
+        button_text = self.font.render('Pause' if not self.is_paused else 'Resume', True, 'black')
+        self.screen.blit(button_text, button_text.get_rect(center=self.button_rect.center))
+
+        # Calculate the position below the button to place the text
+        text_x = self.button_rect.left  # Align text with left edge of the button
+        text_y_start = self.button_rect.bottom + 10  # Start the text 10 pixels below the bottom of the button
+
+        # Display information about train process
+        algorithm_text = self.font.render(f'Algorithm: {self.algorithm}', True, (0, 0, 0))
+        experiment_text = self.font.render(f'Experiment: {self.experiment}', True, (0, 0, 0))
+        self.screen.blit(algorithm_text, (text_x + 10, text_y_start))
+        self.screen.blit(experiment_text, (text_x + 10, text_y_start + 30))
+
+        if self.show:
+            episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
+            reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
+            reached_goals_text = self.font.render(f'Reached goals: {self.reached_goals}', True, (0, 0, 0))
+            self.screen.blit(episode_text, (text_x + 10, text_y_start + 60))
+            self.screen.blit(reward_text, (text_x + 10, text_y_start + 90))
+            self.screen.blit(reached_goals_text, (text_x + 10, text_y_start + 120))
+
         pygame.display.update()
 
-    def apply_color_overlay(self, image, color):
-        """ Apply a color overlay on the given image. """
-        colored_image = image.copy()
-        colored_image = image.copy()
-        colored_image.fill(color, special_flags=pygame.BLEND_RGBA_MULT)
-        return colored_image
+        pygame.image.save(self.screen, f"maze_{self.image_counter}.png")
+        self.image_counter += 1
 
     def toggle_pause(self):
         """ Toggles the paused state of the game. """
@@ -247,7 +230,8 @@ class MazeEnv(gym.Env):
                 print(q_table[row, col])
                 print('max', max_value)
                 # Randomly choose one of the actions that have the max Q-value
-                return np.random.choice(max_actions)
+                # return np.random.choice(max_actions)
+                return max_actions[0]
 
     def update_q_value_qlearning(self, state, action, reward, next_state):
         row, col = state
@@ -347,7 +331,7 @@ class MazeEnv(gym.Env):
             total_rewards.append(self.total_reward)
             # print(f"Episode {episode + 1}: Total Reward: {self.total_reward}")
 
-        return total_rewards
+        return total_rewards, self.q_table
 
     def visualize_learned_path(self):
         # Reset the environment to the start position
