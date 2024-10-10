@@ -44,7 +44,7 @@ start = (int(np.where(maze_np == 'S')[0]), int(np.where(maze_np == 'S')[1]))
 end_goal_pos = (int(np.where(maze_np == 'E')[0]), int(np.where(maze_np == 'E')[1]))
 
 # Parameters
-episodes = 3
+episodes = 300
 
 sleep_sec = 0
 # sleep_sec = 0.05
@@ -168,3 +168,38 @@ plt.legend(loc='lower right')
 plt.title('Average Total Rewards with Standard Deviations for Different Epsilons')
 plt.grid(which='major', linestyle='--', linewidth=0.75)
 plt.show()
+
+# # Convert results to numpy arrays for easy computation
+# for key in results_phase1:  # keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1)
+#     results_phase1[key] = np.array(results_phase1[key])
+#     results_phase2[key] = np.array(results_phase2[key])
+#
+# # Combine rewards for phase 1 and phase 2 by adding them together (element-wise)
+# mean_combined_rewards = {}
+# std_combined_rewards = {}
+#
+# for key in results_phase1:  # keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1)
+#     combined_rewards = results_phase1[key] + results_phase2[key]  # Element-wise addition of rewards
+#     print(f'{combined_rewards} = {results_phase1[key]} + {results_phase2[key]}')
+#     mean_combined_rewards[key] = np.mean(combined_rewards, axis=0)
+#     std_combined_rewards[key] = np.std(combined_rewards, axis=0)
+#
+# # Plot the combined results
+# plt.figure()
+#
+# # Total number of episodes (since we're combining element-wise, this doesn't change the episode count)
+# for eps in epsilons:
+#     for alg in algorithms:
+#         label = f"{alg} {eps}"
+#         plt.plot(range(episodes), mean_combined_rewards[(alg, eps)], label=label)  # Use the original episode count
+#         plt.fill_between(range(episodes),
+#                          mean_combined_rewards[(alg, eps)] - std_combined_rewards[(alg, eps)],
+#                          mean_combined_rewards[(alg, eps)] + std_combined_rewards[(alg, eps)],
+#                          alpha=0.2)
+#
+# plt.xlabel('Episodes')
+# plt.ylabel('Average Total Combined Rewards')
+# plt.legend(loc='lower right')
+# plt.title(f'Average Combined Rewards with STD for {num_experiments} experiments with {episodes} episodes')
+# plt.grid(which='major', linestyle='--', linewidth=0.75)
+# plt.show()

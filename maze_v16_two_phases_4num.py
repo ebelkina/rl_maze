@@ -93,7 +93,7 @@ class MazeEnv(gym.Env):
                 reward = -100  # Penalty for hitting a wall
                 # next_pos = self.current_pos  # Stay in the same place if hitting a wall
                 # next_pos = self.start_pos
-                self.done = True
+                self.done = True # start from beginning
             else:
                 # Update the position
                 self.current_pos = next_pos
