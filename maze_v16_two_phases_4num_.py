@@ -44,14 +44,15 @@ start = (int(np.where(maze_np == 'S')[0]), int(np.where(maze_np == 'S')[1]))
 end_goal_pos = (int(np.where(maze_np == 'E')[0]), int(np.where(maze_np == 'E')[1]))
 
 # Parameters
-episodes = 300
+episodes = 3
 
 sleep_sec = 0
 # sleep_sec = 0.05
+# sleep_sec = 0.5
 
 num_experiments = 10 # equal seed
-# show = False
-show = True
+show = False
+# show = True
 
 # show = False
 algorithms = ["q-learning"]

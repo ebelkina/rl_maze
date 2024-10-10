@@ -32,6 +32,7 @@ class MazeEnv(gym.Env):
 
         # Set font for displaying Q-values and button
         self.font = pygame.font.SysFont('Arial', 18)
+        self.small_font = pygame.font.SysFont('Arial', 10)
 
         # Button properties
         self.button_color = (200, 200, 200)
@@ -42,6 +43,7 @@ class MazeEnv(gym.Env):
         self.algorithm = algorithm
         if self.algorithm == "q-learning" or self.algorithm == "sarsa":
             self.q_table = np.zeros((self.num_rows, self.num_cols, self.num_actions))  # For Q-learning and SARSA
+            # print('self.q_table[self.start_pos]\n', self.q_table[self.start_pos])
         if self.algorithm == "policy_gradient":
             self.policy_table = np.ones((self.num_rows, self.num_cols, self.num_actions)) / self.num_actions  # Policy Gradient
 
@@ -131,7 +133,8 @@ class MazeEnv(gym.Env):
             for col in range(self.num_cols):
                 cell_left = col * self.cell_size
                 cell_top = row * self.cell_size
-                cell_center = (col * self.cell_size + self.cell_size // 2, row * self.cell_size + self.cell_size // 2)
+                cell_center = (col * self.cell_size + 0.5 * self.cell_size,
+                               row * self.cell_size + 0.5 * self.cell_size)
 
                 # Check for walls, start, sub-goal, and end goal
                 if self.maze[row, col] == '1':
@@ -143,25 +146,47 @@ class MazeEnv(gym.Env):
                 elif (row, col) == self.end_goal_pos:
                     pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size))
                 else:
-                    # Get max Q-value for the current cell
-                    max_q_value = np.max(self.q_table[row, col])
-                    # Map Q-value to a color
-                    cell_color = self.get_q_value_color(max_q_value)
-                    pygame.draw.rect(self.screen, cell_color, (cell_left, cell_top, self.cell_size, self.cell_size))
-
+                    # # Get max Q-value for the current cell
+                    # max_q_value = np.max(self.q_table[row, col])
+                    # # Map Q-value to a color
+                    # cell_color = self.get_q_value_color(max_q_value)
+                    # pygame.draw.rect(self.screen, cell_color, (cell_left, cell_top, self.cell_size, self.cell_size))
+                    #
                     # # Display the Q-value as text
                     # q_value_text = self.font.render(f'{max_q_value:.2f}', True, 'black')
                     # text_rect = q_value_text.get_rect(center=cell_center)
                     # self.screen.blit(q_value_text, text_rect)
 
-                # Mark path if Done
-                max_q_value = np.max(self.q_table[row, col])
-                color_q_value = 'black'
-                if any(np.array_equal((row, col), np.array(p)) for p in self.path):
-                    color_q_value = 'red'
-                q_value_text = self.font.render(f'{max_q_value:.2f}', True, color_q_value)
-                text_rect = q_value_text.get_rect(center=cell_center)
-                self.screen.blit(q_value_text, text_rect)
+                    ### 4 numbers
+                    pygame.draw.rect(self.screen, 'white', (cell_left, cell_top, self.cell_size, self.cell_size))
+                    pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size), 1)
+                    cell_inside_up = (col * self.cell_size + 0.5 * self.cell_size,
+                                      row * self.cell_size + 0.1 * self.cell_size)
+                    cell_inside_down = (col * self.cell_size + 0.5 * self.cell_size,
+                                        row * self.cell_size + 0.8 * self.cell_size)
+                    cell_inside_left = (col * self.cell_size + 0.2 * self.cell_size,
+                                        row * self.cell_size + 0.5 * self.cell_size)
+                    cell_inside_right = (col * self.cell_size + 0.8 * self.cell_size,
+                                         row * self.cell_size + 0.5 * self.cell_size)
+
+                    text_right = self.small_font.render(f'{self.q_table[row, col, 0]:.2f}', True, 'black')
+                    text_left = self.small_font.render(f'{self.q_table[row, col, 1]:.2f}', True, 'black')
+                    text_down = self.small_font.render(f'{self.q_table[row, col, 2]:.2f}', True, 'black')
+                    text_up = self.small_font.render(f'{self.q_table[row, col, 3]:.2f}', True, 'black')
+                    self.screen.blit(text_right, text_right.get_rect(center=cell_inside_right))
+                    self.screen.blit(text_left, text_left.get_rect(center=cell_inside_left))
+                    self.screen.blit(text_down, text_down.get_rect(center=cell_inside_down))
+                    self.screen.blit(text_up, text_up.get_rect(center=cell_inside_up))
+
+
+                # # Mark path if Done
+                # max_q_value = np.max(self.q_table[row, col])
+                # color_q_value = 'black'
+                # if any(np.array_equal((row, col), np.array(p)) for p in self.path):
+                #     color_q_value = 'red'
+                # q_value_text = self.font.render(f'{max_q_value:.2f}', True, color_q_value)
+                # text_rect = q_value_text.get_rect(center=cell_center)
+                # self.screen.blit(q_value_text, text_rect)
 
                 ###
                 # if self.done:
@@ -171,7 +196,7 @@ class MazeEnv(gym.Env):
 
                 # Draw the agent's current position as a yellow circle
                 if np.array_equal(np.array(self.current_pos), np.array([row, col])):
-                    pygame.draw.circle(self.screen, 'yellow', cell_center, self.cell_size // 4)
+                    pygame.draw.circle(self.screen, 'yellow', cell_center, 0.1 * self.cell_size)
 
         # Draw the pause button
         pygame.draw.rect(self.screen, self.button_color, self.button_rect)
@@ -218,8 +243,8 @@ class MazeEnv(gym.Env):
                     self.toggle_pause()
 
     def choose_action(self, state, q_table=None):  # TODO not qtable?
-        if self.algorithm == "random":
-            return np.random.choice([0, 1, 2, 3])  # Random action
+        # if self.algorithm == "random":
+        #     return np.random.choice([0, 1, 2, 3])  # Random action
 
         # elif self.algorithm == "policy_gradient":
         #     row, col = state
@@ -229,18 +254,25 @@ class MazeEnv(gym.Env):
         #     return np.random.choice(np.arange(self.num_actions), p=action_probabilities)
 
 
-        elif self.algorithm == "q-learning" or self.algorithm == "sarsa" and q_table is not None:
+        if self.algorithm == "q-learning" or self.algorithm == "sarsa" and self.q_table is not None:
             if np.random.uniform(0, 1) < self.epsilon:  # TODO not for q-learning?
                 return self.action_space.sample()  # Explore
             else: # Exploit
                 row, col = state
-                max_value = np.max(q_table[row, col])  # Find the max Q-value
+                max_value = np.max(self.q_table[row, col])  # Find the max Q-value
                 # Get all actions that have the max Q-value
-                max_actions = np.where(q_table[row, col] == max_value)[0]
-                print(q_table[row, col])
-                print('max', max_value)
+                max_actions = np.where(self.q_table[row, col] == max_value)[0]
+                if self.show:
+                    print('state:', row, col)
+                    print('self.q_table[row, col]\n', self.q_table[row, col])
+                    print('max', max_value)
+                    print('max_actions', max_actions)
                 # Randomly choose one of the actions that have the max Q-value
-                return np.random.choice(max_actions)
+                chosen_action = np.random.choice(max_actions)
+                if self.show:
+                    print(print('chosen_action', chosen_action))
+                return chosen_action
+                # return np.argmax(self.q_table[row, col])
 
     def update_q_value_qlearning(self, state, action, reward, next_state):
         row, col = state
@@ -249,9 +281,20 @@ class MazeEnv(gym.Env):
         # td_target = reward + self.gamma * self.q_table[next_row, next_col, best_next_action]
         # td_error = td_target - self.q_table[row, col, action]
         # self.q_table[row, col, action] += self.alpha * td_error
+        if self.show:
+            print("next_state", next_state)
+            print(self.q_table[next_row, next_col])
+            print("best_next_action", best_next_action)
+            print(
+                f"q_table[{row}, {col}, {action}] = {self.q_table[row, col, action]} + {self.alpha} * ({reward} + {self.gamma} * {self.q_table[next_row, next_col, best_next_action]} - {self.q_table[row, col, action]})",
+                f"= {self.q_table[row, col, action] + self.alpha * (reward +  self.gamma * self.q_table[next_row, next_col, best_next_action] - self.q_table[row, col, action])}")
+            print(f"updated_q-table for {state}\n", self.q_table[row, col])
+
         self.q_table[row, col, action] += self.alpha * (reward +
                                                         self.gamma * self.q_table[next_row, next_col, best_next_action] -
                                                         self.q_table[row, col, action])
+
+
 
     def update_q_value_sarsa(self, state, action, reward, next_state, next_action):
         row, col = state
@@ -286,7 +329,7 @@ class MazeEnv(gym.Env):
             elif self.algorithm == "sarsa":
                 q_table = self.q_table
 
-            self.path = [(state)]
+            self.path = [state]
             rewards_episode = []
 
             while not self.done:
@@ -297,6 +340,9 @@ class MazeEnv(gym.Env):
                 # Check if the game is paused
                 if self.is_paused:
                     continue
+
+                if self.show:
+                    self.render()
 
                 action = self.choose_action(state, q_table)
 
@@ -332,11 +378,11 @@ class MazeEnv(gym.Env):
                 #
                 # # Add a small delay for better visualization (adjust as needed)
                 # time.sleep(sleep_sec)
-
-            print('total_reward', self.total_reward)
-            print('path: ', self.path)
-            print('rewards_episode: ', rewards_episode)
-            # print('reached_goals', self.reached_goals)
+            if self.show:
+                print('total_reward', self.total_reward)
+                print('path: ', self.path)
+                print('rewards_episode: ', rewards_episode)
+                # print('reached_goals', self.reached_goals)
 
             # self.reached_goals = set()
             total_rewards.append(self.total_reward)
