@@ -10,7 +10,7 @@ import time
 
 class MazeEnv(gym.Env):
     def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1,
-                 algorithm="random", experiment=0, show=True):
+                 algorithm="random", experiment=0, show=True, reduce_epsilon=False):
         super(MazeEnv, self).__init__()
         self.maze = np.array(maze)
         self.start_pos = (int(np.where(self.maze == 'S')[0]), int(np.where(self.maze == 'S')[1]))
@@ -72,6 +72,7 @@ class MazeEnv(gym.Env):
         self.image_counter = 1
         # self.phase = 1
         self.max_num_steps_per_phase = 2 * self.maze.size # Assume TODO
+        self.reduce_epsilon = reduce_epsilon
 
     def get_q_table(self):
         if not self.sub_goal_reached:
@@ -255,6 +256,9 @@ class MazeEnv(gym.Env):
 
         for episode in range(1, episodes+1):
             self.episode = episode
+
+            if self.reduce_epsilon:
+                self.epsilon /= self.episode
 
             # total_rewards_phase_1 = []
             self.reset()

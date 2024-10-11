@@ -36,7 +36,7 @@ maze[5][3] = 'G' # initial
 # maze[8][7] = 'G'
 
 # Parameters
-episodes = 100
+episodes = 200
 
 sleep_sec = 0
 # sleep_sec = 0.05
@@ -51,7 +51,10 @@ algorithms = ["q-learning"]
 # algorithms = ["q-learning", "sarsa"]
 
 # epsilons = [0.001]
-epsilons = [0, 0.001, 0.01]
+epsilons = [0, 0.001, 0.01, 0.1]
+
+reduce_epsilon = False
+reduce_epsilon = True
 
 alpha = 0.05
 
@@ -67,7 +70,8 @@ for eps in epsilons:
     for alg in algorithms:
         for experiment in range(1, num_experiments+1):
             rewards = []
-            env = gym.make('Maze_v17', maze=maze, epsilon=eps, algorithm=alg, experiment=experiment, show=show)
+            env = gym.make('Maze_v17', maze=maze, epsilon=eps, algorithm=alg,
+                           experiment=experiment, show=show, reduce_epsilon=reduce_epsilon)
             env.reset()
             env.render()
             rewards, q_table_1, q_table_2 = env.train(episodes, sleep_sec)
