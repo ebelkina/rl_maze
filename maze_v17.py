@@ -151,13 +151,16 @@ class MazeEnv(gym.Env):
         # Normalize Q-value to a range between 0 and 1
         min = np.min(self.q_table_current)
         max = np.max(self.q_table_current)
-        first = (q_value - np.min(self.q_table_current))
-        second = (np.max(self.q_table_current) - np.min(self.q_table_current) + 1e-5)
-        result = first/second
-        normalized_q = (q_value - np.min(self.q_table_current)) / (np.max(self.q_table_current) - np.min(self.q_table_current) + 1e-5)
+        # first = (q_value - min) # TODO for debugging
+        # second = (max - min + 1e-5)
+        # result = first/second
+        normalized_q = (q_value - min) / (np.max(self.q_table_current) - np.min(self.q_table_current) + 1e-5)
         # Interpolate between white (low) and middle gray (high)
-        gray_value = int(255 - (normalized_q * (255 - 150)))  # The higher the Q-value, the closer to middle gray
-        return (gray_value, gray_value, gray_value)
+        color_value = int(255 - (normalized_q * (255 - 100)))  # The higher the Q-value, the closer to middle gray
+        if self.q_table_current is self.q_table_1:
+            return (color_value, 255, color_value)
+        elif self.q_table_current is self.q_table_2:
+            return (color_value, color_value, 255)
 
     def render(self):
         self.screen.fill((255, 255, 255))
@@ -173,27 +176,7 @@ class MazeEnv(gym.Env):
                 if self.maze[row, col] == '1':
                     pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size))
                 else:
-                    if (row, col) == self.start_pos:
-                        pygame.draw.rect(self.screen, 'green', (cell_left, cell_top, self.cell_size, self.cell_size),
-                                         10)
-                    elif (row, col) == self.sub_goal_pos:
-                        pygame.draw.rect(self.screen, 'blue', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
-                    elif (row, col) == self.end_goal_pos:
-                        pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
-                    else:
-                        pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size), 1)
-
                     ### Display Q-table as 4 numbers in a cell
-
-                    # Define positions for actions: up, right, down, left
-                    cell_inside_up = (col * self.cell_size + 0.5 * self.cell_size,
-                                      row * self.cell_size + 0.1 * self.cell_size)
-                    cell_inside_right = (col * self.cell_size + 0.8 * self.cell_size,
-                                         row * self.cell_size + 0.5 * self.cell_size)
-                    cell_inside_down = (col * self.cell_size + 0.5 * self.cell_size,
-                                        row * self.cell_size + 0.8 * self.cell_size)
-                    cell_inside_left = (col * self.cell_size + 0.2 * self.cell_size,
-                                        row * self.cell_size + 0.5 * self.cell_size)
 
                     action_size_small = self.cell_size * 0.3
                     action_size_large = self.cell_size * 0.4
@@ -226,11 +209,32 @@ class MazeEnv(gym.Env):
                     text_down = self.small_font.render(f'{self.q_table_current[row, col, 2]:.2f}', True, 'black')
                     text_left = self.small_font.render(f'{self.q_table_current[row, col, 3]:.2f}', True, 'black')
 
+
+
+                    if (row, col) == self.start_pos:
+                        pygame.draw.rect(self.screen, 'green', (cell_left, cell_top, self.cell_size, self.cell_size),
+                                         10)
+                    elif (row, col) == self.sub_goal_pos:
+                        pygame.draw.rect(self.screen, 'blue', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
+                    elif (row, col) == self.end_goal_pos:
+                        pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
+                    else:
+                        pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size), 1)
+
+                    # Define positions for actions: up, right, down, left
+                    cell_inside_up = (col * self.cell_size + 0.5 * self.cell_size,
+                                      row * self.cell_size + 0.1 * self.cell_size)
+                    cell_inside_right = (col * self.cell_size + 0.8 * self.cell_size,
+                                         row * self.cell_size + 0.5 * self.cell_size)
+                    cell_inside_down = (col * self.cell_size + 0.5 * self.cell_size,
+                                        row * self.cell_size + 0.8 * self.cell_size)
+                    cell_inside_left = (col * self.cell_size + 0.2 * self.cell_size,
+                                        row * self.cell_size + 0.5 * self.cell_size)
+
                     self.screen.blit(text_up, text_up.get_rect(center=cell_inside_up))
                     self.screen.blit(text_right, text_right.get_rect(center=cell_inside_right))
                     self.screen.blit(text_down, text_down.get_rect(center=cell_inside_down))
                     self.screen.blit(text_left, text_left.get_rect(center=cell_inside_left))
-
 
                 # # Mark path if Done
                 # max_q_value = np.max(self.q_table[row, col])
@@ -247,9 +251,9 @@ class MazeEnv(gym.Env):
                 #         if np.array_equal(cell, (row, col)):
                 #             pygame.draw.circle(self.screen, 'red', cell_center, self.cell_size // 10)
 
-                # Draw the agent's current position as a yellow circle
+                # Draw the agent's current position as a red circle
                 if np.array_equal(np.array(self.current_pos), np.array([row, col])):
-                    pygame.draw.circle(self.screen, 'yellow', cell_center, 0.1 * self.cell_size)
+                    pygame.draw.circle(self.screen, 'red', cell_center, 0.1 * self.cell_size)
 
         # Draw the pause button
         pygame.draw.rect(self.screen, self.button_color, self.button_rect)
