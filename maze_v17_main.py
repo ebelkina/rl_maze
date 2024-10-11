@@ -36,13 +36,13 @@ maze[5][3] = 'G' # initial
 # maze[8][7] = 'G'
 
 # Parameters
-episodes = 3
+episodes = 100
 
 sleep_sec = 0
 # sleep_sec = 0.05
 # sleep_sec = 0.5
 
-num_experiments = 10 # equal seed
+num_experiments = 1 # equal seed
 show = False
 show = True
 

@@ -79,7 +79,10 @@ class MazeEnv(gym.Env):
         self.done = False
         self.total_reward = 0
         self.current_pos = self.start_pos
+        self.q_table_current = self.q_table_1
         self.image_counter = 1
+        self.sub_goal_reached = False
+        self.q_table_current = self.q_table_1
 
         # if self.sub_goal_reached:
         #     self.current_pos = self.start_pos
@@ -123,7 +126,7 @@ class MazeEnv(gym.Env):
                 # Check if agent reaches the sub-goal
                 if self.next_pos == self.sub_goal_pos and not self.sub_goal_reached: # not in self.reached_goals:
                     reward = 50  # Reward for reaching the sub-goal TODO +50 only 1st time?
-                    self.sub_goal_reached = True
+                    # self.sub_goal_reached = True
                     # self.reached_goals.add(self.sub_goal_pos)  # Mark sub-goal as reached TODO just flag?
 
                 # Check if agent reaches the final goal
@@ -146,6 +149,11 @@ class MazeEnv(gym.Env):
     def get_q_value_color(self, q_value):
         """ Map a Q-value to a color between white (low Q) and middle gray (high Q). """
         # Normalize Q-value to a range between 0 and 1
+        min = np.min(self.q_table_current)
+        max = np.max(self.q_table_current)
+        first = (q_value - np.min(self.q_table_current))
+        second = (np.max(self.q_table_current) - np.min(self.q_table_current) + 1e-5)
+        result = first/second
         normalized_q = (q_value - np.min(self.q_table_current)) / (np.max(self.q_table_current) - np.min(self.q_table_current) + 1e-5)
         # Interpolate between white (low) and middle gray (high)
         gray_value = int(255 - (normalized_q * (255 - 150)))  # The higher the Q-value, the closer to middle gray
@@ -164,44 +172,64 @@ class MazeEnv(gym.Env):
                 # Check for walls, start, sub-goal, and end goal
                 if self.maze[row, col] == '1':
                     pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size))
-                elif (row, col) == self.start_pos:
-                    pygame.draw.rect(self.screen, 'green', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
-                elif (row, col) == self.sub_goal_pos:
-                    pygame.draw.rect(self.screen, 'blue', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
-                elif (row, col) == self.end_goal_pos:
-                    pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
                 else:
-                    # # Get max Q-value for the current cell
-                    # max_q_value = np.max(self.q_table[row, col])
-                    # # Map Q-value to a color
-                    # cell_color = self.get_q_value_color(max_q_value)
-                    # pygame.draw.rect(self.screen, cell_color, (cell_left, cell_top, self.cell_size, self.cell_size))
-                    #
-                    # # Display the Q-value as text
-                    # q_value_text = self.font.render(f'{max_q_value:.2f}', True, 'black')
-                    # text_rect = q_value_text.get_rect(center=cell_center)
-                    # self.screen.blit(q_value_text, text_rect)
+                    if (row, col) == self.start_pos:
+                        pygame.draw.rect(self.screen, 'green', (cell_left, cell_top, self.cell_size, self.cell_size),
+                                         10)
+                    elif (row, col) == self.sub_goal_pos:
+                        pygame.draw.rect(self.screen, 'blue', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
+                    elif (row, col) == self.end_goal_pos:
+                        pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
+                    else:
+                        pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size), 1)
 
-                    ### 4 numbers
-                    # pygame.draw.rect(self.screen, 'white', (cell_left, cell_top, self.cell_size, self.cell_size))
-                    pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size), 1)
-                cell_inside_up = (col * self.cell_size + 0.5 * self.cell_size,
+                    ### Display Q-table as 4 numbers in a cell
+
+                    # Define positions for actions: up, right, down, left
+                    cell_inside_up = (col * self.cell_size + 0.5 * self.cell_size,
                                       row * self.cell_size + 0.1 * self.cell_size)
-                cell_inside_down = (col * self.cell_size + 0.5 * self.cell_size,
-                                        row * self.cell_size + 0.8 * self.cell_size)
-                cell_inside_left = (col * self.cell_size + 0.2 * self.cell_size,
-                                        row * self.cell_size + 0.5 * self.cell_size)
-                cell_inside_right = (col * self.cell_size + 0.8 * self.cell_size,
+                    cell_inside_right = (col * self.cell_size + 0.8 * self.cell_size,
                                          row * self.cell_size + 0.5 * self.cell_size)
+                    cell_inside_down = (col * self.cell_size + 0.5 * self.cell_size,
+                                        row * self.cell_size + 0.8 * self.cell_size)
+                    cell_inside_left = (col * self.cell_size + 0.2 * self.cell_size,
+                                        row * self.cell_size + 0.5 * self.cell_size)
 
-                text_right = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True, 'black')
-                text_left = self.small_font.render(f'{self.q_table_current[row, col, 1]:.2f}', True, 'black')
-                text_down = self.small_font.render(f'{self.q_table_current[row, col, 2]:.2f}', True, 'black')
-                text_up = self.small_font.render(f'{self.q_table_current[row, col, 3]:.2f}', True, 'black')
-                self.screen.blit(text_right, text_right.get_rect(center=cell_inside_right))
-                self.screen.blit(text_left, text_left.get_rect(center=cell_inside_left))
-                self.screen.blit(text_down, text_down.get_rect(center=cell_inside_down))
-                self.screen.blit(text_up, text_up.get_rect(center=cell_inside_up))
+                    action_size_small = self.cell_size * 0.3
+                    action_size_large = self.cell_size * 0.4
+
+                    # Color and draw for action 0 (up)
+                    cell_color_0 = self.get_q_value_color(self.q_table_current[row, col, 0])
+                    pygame.draw.rect(self.screen, cell_color_0,
+                                     (cell_left + action_size_small, cell_top, action_size_large, action_size_small))
+
+                    # Color and draw for action 1 (right)
+                    cell_color_1 = self.get_q_value_color(self.q_table_current[row, col, 1])
+                    pygame.draw.rect(self.screen, cell_color_1, (
+                    cell_left + action_size_small + action_size_large, cell_top + action_size_small, action_size_large,
+                    action_size_small))
+
+                    # Color and draw for action 2 (down)
+                    cell_color_2 = self.get_q_value_color(self.q_table_current[row, col, 2])
+                    pygame.draw.rect(self.screen, cell_color_2, (
+                    cell_left + action_size_small, cell_top + action_size_large + action_size_small, action_size_large,
+                    action_size_small))
+
+                    # Color and draw for action 3 (left)
+                    cell_color_3 = self.get_q_value_color(self.q_table_current[row, col, 3])
+                    pygame.draw.rect(self.screen, cell_color_3,
+                                     (cell_left, cell_top + action_size_large, action_size_large, action_size_small))
+
+                    # Display Q-values as text inside the cell for each action
+                    text_up = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True, 'black')
+                    text_right = self.small_font.render(f'{self.q_table_current[row, col, 1]:.2f}', True, 'black')
+                    text_down = self.small_font.render(f'{self.q_table_current[row, col, 2]:.2f}', True, 'black')
+                    text_left = self.small_font.render(f'{self.q_table_current[row, col, 3]:.2f}', True, 'black')
+
+                    self.screen.blit(text_up, text_up.get_rect(center=cell_inside_up))
+                    self.screen.blit(text_right, text_right.get_rect(center=cell_inside_right))
+                    self.screen.blit(text_down, text_down.get_rect(center=cell_inside_down))
+                    self.screen.blit(text_left, text_left.get_rect(center=cell_inside_left))
 
 
                 # # Mark path if Done
@@ -239,11 +267,11 @@ class MazeEnv(gym.Env):
         self.screen.blit(experiment_text, (text_x + 10, text_y_start + 30))
 
         if self.show:
-            sub_goal_text = self.font.render(f'Sub goal reached: {self.sub_goal_reached}', True, (0, 0, 0))
+            sub_goal_text = self.font.render(f'Sub goal reached', True, (0, 0, 0))
             episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
             reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
-            # reached_goals_text = self.font.render(f'Reached goals: {self.reached_goals}', True, (0, 0, 0))
-            self.screen.blit(sub_goal_text, (text_x + 10, text_y_start + 60))
+            if self.sub_goal_reached:
+                self.screen.blit(sub_goal_text, (text_x + 10, text_y_start + 60))
             self.screen.blit(episode_text, (text_x + 10, text_y_start + 90))
             self.screen.blit(reward_text, (text_x + 10, text_y_start + 120))
             # self.screen.blit(reached_goals_text, (text_x + 10, text_y_start + 120))
@@ -383,6 +411,10 @@ class MazeEnv(gym.Env):
                     action = next_action
                 elif self.algorithm == "policy_gradient":
                     self.update_policy_gradient(action, reward_immidiate) #, next_state)
+
+                if self.next_pos == self.sub_goal_pos and not self.sub_goal_reached: # not in self.reached_goals:
+                    self.sub_goal_reached = True
+                    self.q_table_current = self.q_table_2
 
                 if self.maze[self.next_pos[0], self.next_pos[1]] != '1': # TODO bounds, allowed
                     # Update the position
