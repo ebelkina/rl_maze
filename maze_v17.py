@@ -9,7 +9,8 @@ from gym.envs.registration import register
 import time
 
 class MazeEnv(gym.Env):
-    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1, algorithm="random", experiment=0, show=True):
+    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1,
+                 algorithm="random", experiment=0, show=True):
         super(MazeEnv, self).__init__()
         self.maze = np.array(maze)
         self.start_pos = (int(np.where(self.maze == 'S')[0]), int(np.where(self.maze == 'S')[1]))
@@ -65,9 +66,12 @@ class MazeEnv(gym.Env):
         self.show = show
         # self.seed = np.random.seed(experiment) # TODO
         self.done = False
-        self.path = []
+        self.path_1 = []
+        self.path_2 = []
+        self.current_path = self.path_1
         self.image_counter = 1
         # self.phase = 1
+        self.max_num_steps_per_phase = 2 * self.maze.size # Assume TODO
 
     def get_q_table(self):
         if not self.sub_goal_reached:
@@ -83,6 +87,7 @@ class MazeEnv(gym.Env):
         self.image_counter = 1
         self.sub_goal_reached = False
         self.q_table_current = self.q_table_1
+        self.current_path = self.path_1 = []
 
         # if self.sub_goal_reached:
         #     self.current_pos = self.start_pos
@@ -274,11 +279,13 @@ class MazeEnv(gym.Env):
             sub_goal_text = self.font.render(f'Sub goal reached', True, (0, 0, 0))
             episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
             reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
+            path_length_text = self.font.render(f'Phase path length: {len(self.current_path)}', True, (0, 0, 0))
+
             if self.sub_goal_reached:
                 self.screen.blit(sub_goal_text, (text_x + 10, text_y_start + 60))
             self.screen.blit(episode_text, (text_x + 10, text_y_start + 90))
             self.screen.blit(reward_text, (text_x + 10, text_y_start + 120))
-            # self.screen.blit(reached_goals_text, (text_x + 10, text_y_start + 120))
+            self.screen.blit(path_length_text, (text_x + 10, text_y_start + 150))
 
         pygame.display.update()
 
@@ -294,7 +301,7 @@ class MazeEnv(gym.Env):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                quit()  # TODO
+                # quit()  # TODO
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if self.button_rect.collidepoint(event.pos):
                     self.toggle_pause()
@@ -388,10 +395,9 @@ class MazeEnv(gym.Env):
             # elif self.algorithm == "sarsa":
             #     q_table = self.q_table
 
-            self.path = []
             rewards_episode = []
 
-            while not self.done:
+            while not (self.done or len(self.current_path) > self.max_num_steps_per_phase):
                 # Handle button events
                 self.handle_events()
 
@@ -419,6 +425,7 @@ class MazeEnv(gym.Env):
                 if self.next_pos == self.sub_goal_pos and not self.sub_goal_reached: # not in self.reached_goals:
                     self.sub_goal_reached = True
                     self.q_table_current = self.q_table_2
+                    self.current_path = self.path_2 = []
 
                 if self.maze[self.next_pos[0], self.next_pos[1]] != '1': # TODO bounds, allowed
                     # Update the position
@@ -431,7 +438,7 @@ class MazeEnv(gym.Env):
                 # Add a small delay for better visualization
                 time.sleep(sleep_sec)
 
-                self.path.append(self.current_pos)
+                self.current_path.append((self.current_pos, action))
                 rewards_episode.append(reward_immidiate)
 
                 # Move to the next state
@@ -440,7 +447,7 @@ class MazeEnv(gym.Env):
 
             if self.show:
                 print('total_reward', self.total_reward)
-                print('path: ', self.path)
+                print('path: ', self.current_path)
                 print('rewards_episode: ', rewards_episode)
                 # print('reached_goals', self.reached_goals)
 
