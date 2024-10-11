@@ -32,7 +32,7 @@ class MazeEnv(gym.Env):
         # Initialize Pygame for visualization
         pygame.init()
         self.cell_size = 60
-        self.screen = pygame.display.set_mode((self.num_cols * self.cell_size + 200, self.num_rows * self.cell_size))
+        self.screen = pygame.display.set_mode((self.num_cols * self.cell_size + 400, self.num_rows * self.cell_size))
 
         # Set font for displaying Q-values and button
         self.font = pygame.font.SysFont('Arial', 18)
@@ -338,6 +338,7 @@ class MazeEnv(gym.Env):
         self.total_reward = 0
         self.sub_goal_reached = False
         self.epsilon = 0
+        self.show = False
 
         # Loop until the agent reaches the goal
         while not self.done:
@@ -410,7 +411,7 @@ class MazeEnv(gym.Env):
                     if show_learned_path:
                         if (row, col) in self.current_path:
                             pygame.draw.circle(self.screen, 'red', cell_center, 0.1 * self.cell_size)
-                    else:
+                    if self.show:
                         text_up = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True,
                                                          self.get_q_value_color(((row, col), 0)))
                         text_right = self.small_font.render(f'{self.q_table_current[row, col, 1]:.2f}', True,
@@ -478,6 +479,7 @@ class MazeEnv(gym.Env):
         text_y_start = self.button_rect.bottom + 10  # Start the text 10 pixels below the bottom of the button
 
         # Display information about train process
+        # algorithm_text = self.font.render(f'Algorithm: {self.algorithm}_{self.epsilon}', True, (0, 0, 0))
         algorithm_text = self.font.render(f'Algorithm: {self.algorithm}', True, (0, 0, 0))
         experiment_text = self.font.render(f'Experiment: {self.experiment}', True, (0, 0, 0))
         self.screen.blit(algorithm_text, (text_x + 10, text_y_start))
@@ -487,13 +489,15 @@ class MazeEnv(gym.Env):
             sub_goal_text = self.font.render(f'Sub goal reached', True, (0, 0, 0))
             episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
             reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
-            path_length_text = self.font.render(f'Phase path length: {len(self.current_path)}', True, (0, 0, 0))
+
 
             if self.sub_goal_reached:
                 self.screen.blit(sub_goal_text, (text_x + 10, text_y_start + 60))
             self.screen.blit(episode_text, (text_x + 10, text_y_start + 90))
             self.screen.blit(reward_text, (text_x + 10, text_y_start + 120))
-            self.screen.blit(path_length_text, (text_x + 10, text_y_start + 150))
+
+        path_length_text = self.font.render(f'Path length: {len(self.current_path)}', True, (0, 0, 0))
+        self.screen.blit(path_length_text, (text_x + 10, text_y_start + 150))
 
         pygame.display.update()
 
