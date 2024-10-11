@@ -176,140 +176,6 @@ class MazeEnv(gym.Env):
         elif self.q_table_current is self.q_table_2:
             return (color_value, color_value, 255)
 
-    def render(self):
-        self.screen.fill((255, 255, 255))
-
-        for row in range(self.num_rows):
-            for col in range(self.num_cols):
-                cell_left = col * self.cell_size
-                cell_top = row * self.cell_size
-                cell_center = (col * self.cell_size + 0.5 * self.cell_size,
-                               row * self.cell_size + 0.5 * self.cell_size)
-
-                # Check for walls, start, sub-goal, and end goal
-                if self.maze[row, col] == '1':
-                    pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size))
-                else:
-                    ### Display Q-table as 4 numbers in a cell
-                    if (row, col) == self.start_pos:
-                        pygame.draw.rect(self.screen, 'green', (cell_left, cell_top, self.cell_size, self.cell_size),
-                                         10)
-                    elif (row, col) == self.sub_goal_pos:
-                        pygame.draw.rect(self.screen, 'blue', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
-                    elif (row, col) == self.end_goal_pos:
-                        pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
-                    else:
-                        pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size), 1)
-
-                    # Display Q-values as text inside the cell for each action
-                    # color_q_value = 'black'
-                    # if any(np.array_equal((row, col), np.array(p)) for p in self.current_path):
-                    #     color_q_value = 'red'
-                    # q_value_text = self.font.render(f'{max_q_value:.2f}', True, color_q_value)
-                    # text_rect = q_value_text.get_rect(center=cell_center)
-                    # self.screen.blit(q_value_text, text_rect)
-
-                    text_up = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True,
-                                                     self.get_q_value_color(((row, col), 0)))
-                    text_right = self.small_font.render(f'{self.q_table_current[row, col, 1]:.2f}', True,
-                                                        self.get_q_value_color(((row, col), 1)))
-                    text_down = self.small_font.render(f'{self.q_table_current[row, col, 2]:.2f}', True,
-                                                       self.get_q_value_color(((row, col), 2)))
-                    text_left = self.small_font.render(f'{self.q_table_current[row, col, 3]:.2f}', True,
-                                                       self.get_q_value_color(((row, col), 3)))
-
-                    # Define positions for actions: up, right, down, left
-                    cell_inside_up = (col * self.cell_size + 0.5 * self.cell_size,
-                                      row * self.cell_size + 0.18 * self.cell_size)
-                    cell_inside_right = (col * self.cell_size + 0.77 * self.cell_size,
-                                         row * self.cell_size + 0.5 * self.cell_size)
-                    cell_inside_down = (col * self.cell_size + 0.5 * self.cell_size,
-                                        row * self.cell_size + 0.87 * self.cell_size)
-                    cell_inside_left = (col * self.cell_size + 0.22 * self.cell_size,
-                                        row * self.cell_size + 0.5 * self.cell_size)
-
-                    # Draw gray rectangles behind the text for better visibility
-                    rect_up = text_up.get_rect(center=cell_inside_up)
-                    pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 0]), rect_up)
-                    self.screen.blit(text_up, rect_up)
-
-                    rect_right = text_right.get_rect(center=cell_inside_right)
-                    pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 1]), rect_right)
-                    self.screen.blit(text_right, rect_right)
-
-                    rect_down = text_down.get_rect(center=cell_inside_down)
-                    pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 2]), rect_down)
-                    self.screen.blit(text_down, rect_down)
-
-                    rect_left = text_left.get_rect(center=cell_inside_left)
-                    pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 3]), rect_left)
-                    self.screen.blit(text_left, rect_left)
-
-                # # Mark path if Done
-                # max_q_value = np.max(self.q_table[row, col])
-                # color_q_value = 'black'
-                # if any(np.array_equal((row, col), np.array(p)) for p in self.path):
-                #     color_q_value = 'red'
-                # q_value_text = self.font.render(f'{max_q_value:.2f}', True, color_q_value)
-                # text_rect = q_value_text.get_rect(center=cell_center)
-                # self.screen.blit(q_value_text, text_rect)
-
-                ###
-                # if self.done:
-                #     for cell in self.path:
-                #         if np.array_equal(cell, (row, col)):
-                #             pygame.draw.circle(self.screen, 'red', cell_center, self.cell_size // 10)
-
-                # Draw the agent's current position as a red circle
-                if np.array_equal(np.array(self.current_pos), np.array([row, col])):
-                    pygame.draw.circle(self.screen, 'red', cell_center, 0.1 * self.cell_size)
-
-        # Draw the pause button
-        pygame.draw.rect(self.screen, self.button_color, self.button_rect)
-        button_text = self.font.render('Pause' if not self.is_paused else 'Resume', True, 'black')
-        self.screen.blit(button_text, button_text.get_rect(center=self.button_rect.center))
-
-        # Calculate the position below the button to place the text
-        text_x = self.button_rect.left  # Align text with left edge of the button
-        text_y_start = self.button_rect.bottom + 10  # Start the text 10 pixels below the bottom of the button
-
-        # Display information about train process
-        algorithm_text = self.font.render(f'Algorithm: {self.algorithm}', True, (0, 0, 0))
-        experiment_text = self.font.render(f'Experiment: {self.experiment}', True, (0, 0, 0))
-        self.screen.blit(algorithm_text, (text_x + 10, text_y_start))
-        self.screen.blit(experiment_text, (text_x + 10, text_y_start + 30))
-
-        if self.show:
-            sub_goal_text = self.font.render(f'Sub goal reached', True, (0, 0, 0))
-            episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
-            reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
-            path_length_text = self.font.render(f'Phase path length: {len(self.current_path)}', True, (0, 0, 0))
-
-            if self.sub_goal_reached:
-                self.screen.blit(sub_goal_text, (text_x + 10, text_y_start + 60))
-            self.screen.blit(episode_text, (text_x + 10, text_y_start + 90))
-            self.screen.blit(reward_text, (text_x + 10, text_y_start + 120))
-            self.screen.blit(path_length_text, (text_x + 10, text_y_start + 150))
-
-        pygame.display.update()
-
-        pygame.image.save(self.screen, f".//saved//v17_{self.image_counter}.png")
-        self.image_counter += 1
-
-    def toggle_pause(self):
-        """ Toggles the paused state of the game. """
-        self.is_paused = not self.is_paused
-
-    def handle_events(self):
-        """ Handle Pygame events, such as mouse clicks on the button. """
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                # quit()  # TODO
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if self.button_rect.collidepoint(event.pos):
-                    self.toggle_pause()
-
     def choose_action(self):  # TODO not qtable?
         # if self.algorithm == "random":
         #     return np.random.choice([0, 1, 2, 3])  # Random action
@@ -463,13 +329,18 @@ class MazeEnv(gym.Env):
 
         return total_rewards_in_episode, self.q_table_1, self.q_table_2
 
-    def visualize_learned_path(self):
+    def show_learned_path(self):
         # Reset the environment to the start position
-        state = self.reset()
-        done = False
+        self.current_pos = self.start_pos
+        self.q_table_current = self.q_table_1
+        self.current_path = []
+        self.done = False
+        self.total_reward = 0
+        self.sub_goal_reached = False
+        self.epsilon = 0
 
         # Loop until the agent reaches the goal
-        while not done:
+        while not self.done:
             # Handle button events
             self.handle_events()
 
@@ -478,20 +349,168 @@ class MazeEnv(gym.Env):
                 continue
 
             # Get the best action based on Q-values
-            row, col = state
+            row, col = self.current_pos
             action = np.argmax(self.q_table_current[row, col])
+            print(self.q_table_current[row, col])
+            print('action', action)
 
             # Take the action and move the agent
-            next_state, _, done, _, _ = self.step(action)
+            next_state, reward_immidiate, self.done, _, _ = self.step(action)
 
-            # Render the environment to show the current position of the agent
-            self.render()
+
+            if self.next_pos == self.sub_goal_pos and not self.sub_goal_reached:  # not in self.reached_goals:
+                self.sub_goal_reached = True
+                self.q_table_current = self.q_table_2
+
+            self.current_path.append(self.current_pos)
+            print(self.current_path)
+
+            if self.maze[self.next_pos[0], self.next_pos[1]] != '1':  # TODO bounds, allowed
+                # Update the position
+                self.current_pos = self.next_pos
+
+            # Render the environment to show training progress
+            self.render(show_learned_path=True)
 
             # Slow down the visualization to see the path
-            time.sleep(0.5)  # Adjust the speed as necessary
+            time.sleep(0.05)
 
             # Move to the next state
-            state = next_state
+            # self.current_pos = self.next_pos
+            self.total_reward += reward_immidiate
+
 
         print("Reached the goal!")
+
+    def render(self, show_learned_path=False):
+        self.screen.fill((255, 255, 255))
+
+        for row in range(self.num_rows):
+            for col in range(self.num_cols):
+                cell_left = col * self.cell_size
+                cell_top = row * self.cell_size
+                cell_center = (col * self.cell_size + 0.5 * self.cell_size,
+                               row * self.cell_size + 0.5 * self.cell_size)
+
+                # Check for walls, start, sub-goal, and end goal
+                if self.maze[row, col] == '1':
+                    pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size))
+                else:
+                    ### Display Q-table as 4 numbers in a cell
+                    if (row, col) == self.start_pos:
+                        pygame.draw.rect(self.screen, 'green', (cell_left, cell_top, self.cell_size, self.cell_size),
+                                         10)
+                    elif (row, col) == self.sub_goal_pos:
+                        pygame.draw.rect(self.screen, 'blue', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
+                    elif (row, col) == self.end_goal_pos:
+                        pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
+                    else:
+                        pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size), 1)
+
+                    if show_learned_path:
+                        if (row, col) in self.current_path:
+                            pygame.draw.circle(self.screen, 'red', cell_center, 0.1 * self.cell_size)
+                    else:
+                        text_up = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True,
+                                                         self.get_q_value_color(((row, col), 0)))
+                        text_right = self.small_font.render(f'{self.q_table_current[row, col, 1]:.2f}', True,
+                                                            self.get_q_value_color(((row, col), 1)))
+                        text_down = self.small_font.render(f'{self.q_table_current[row, col, 2]:.2f}', True,
+                                                           self.get_q_value_color(((row, col), 2)))
+                        text_left = self.small_font.render(f'{self.q_table_current[row, col, 3]:.2f}', True,
+                                                           self.get_q_value_color(((row, col), 3)))
+
+                        # Define positions for actions: up, right, down, left
+                        cell_inside_up = (col * self.cell_size + 0.5 * self.cell_size,
+                                          row * self.cell_size + 0.18 * self.cell_size)
+                        cell_inside_right = (col * self.cell_size + 0.77 * self.cell_size,
+                                             row * self.cell_size + 0.5 * self.cell_size)
+                        cell_inside_down = (col * self.cell_size + 0.5 * self.cell_size,
+                                            row * self.cell_size + 0.87 * self.cell_size)
+                        cell_inside_left = (col * self.cell_size + 0.22 * self.cell_size,
+                                            row * self.cell_size + 0.5 * self.cell_size)
+
+                        # Draw gray rectangles behind the text for better visibility
+                        rect_up = text_up.get_rect(center=cell_inside_up)
+                        pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 0]), rect_up)
+                        self.screen.blit(text_up, rect_up)
+
+                        rect_right = text_right.get_rect(center=cell_inside_right)
+                        pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 1]), rect_right)
+                        self.screen.blit(text_right, rect_right)
+
+                        rect_down = text_down.get_rect(center=cell_inside_down)
+                        pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 2]), rect_down)
+                        self.screen.blit(text_down, rect_down)
+
+                        rect_left = text_left.get_rect(center=cell_inside_left)
+                        pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 3]), rect_left)
+                        self.screen.blit(text_left, rect_left)
+
+                # # # Mark path if Done
+                # for step in self.path_1:
+
+                # max_q_value = np.max(self.q_table[row, col])
+                # color_q_value = 'black'
+                # if any(np.array_equal((row, col), np.array(p)) for p in self.path):
+                #     color_q_value = 'red'
+                # q_value_text = self.font.render(f'{max_q_value:.2f}', True, color_q_value)
+                # text_rect = q_value_text.get_rect(center=cell_center)
+                # self.screen.blit(q_value_text, text_rect)
+
+                ###
+                # if self.done:
+                #     for cell in self.path:
+                #         if np.array_equal(cell, (row, col)):
+                #             pygame.draw.circle(self.screen, 'red', cell_center, self.cell_size // 10)
+
+                # Draw the agent's current position as a red circle
+                if np.array_equal(np.array(self.current_pos), np.array([row, col])):
+                    pygame.draw.circle(self.screen, 'red', cell_center, 0.1 * self.cell_size)
+
+        # Draw the pause button
+        pygame.draw.rect(self.screen, self.button_color, self.button_rect)
+        button_text = self.font.render('Pause' if not self.is_paused else 'Resume', True, 'black')
+        self.screen.blit(button_text, button_text.get_rect(center=self.button_rect.center))
+
+        # Calculate the position below the button to place the text
+        text_x = self.button_rect.left  # Align text with left edge of the button
+        text_y_start = self.button_rect.bottom + 10  # Start the text 10 pixels below the bottom of the button
+
+        # Display information about train process
+        algorithm_text = self.font.render(f'Algorithm: {self.algorithm}', True, (0, 0, 0))
+        experiment_text = self.font.render(f'Experiment: {self.experiment}', True, (0, 0, 0))
+        self.screen.blit(algorithm_text, (text_x + 10, text_y_start))
+        self.screen.blit(experiment_text, (text_x + 10, text_y_start + 30))
+
+        if self.show:
+            sub_goal_text = self.font.render(f'Sub goal reached', True, (0, 0, 0))
+            episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
+            reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
+            path_length_text = self.font.render(f'Phase path length: {len(self.current_path)}', True, (0, 0, 0))
+
+            if self.sub_goal_reached:
+                self.screen.blit(sub_goal_text, (text_x + 10, text_y_start + 60))
+            self.screen.blit(episode_text, (text_x + 10, text_y_start + 90))
+            self.screen.blit(reward_text, (text_x + 10, text_y_start + 120))
+            self.screen.blit(path_length_text, (text_x + 10, text_y_start + 150))
+
+        pygame.display.update()
+
+        pygame.image.save(self.screen, f".//saved//v17_{self.image_counter}.png")
+        self.image_counter += 1
+
+    def toggle_pause(self):
+        """ Toggles the paused state of the game. """
+        self.is_paused = not self.is_paused
+
+    def handle_events(self):
+        """ Handle Pygame events, such as mouse clicks on the button. """
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                # quit()  # TODO
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.button_rect.collidepoint(event.pos):
+                    self.toggle_pause()
 

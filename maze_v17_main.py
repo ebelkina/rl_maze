@@ -36,15 +36,15 @@ maze[5][3] = 'G' # initial
 # maze[8][7] = 'G'
 
 # Parameters
-episodes = 100
+episodes = 50
 
 sleep_sec = 0
 # sleep_sec = 0.05
 # sleep_sec = 0.5
 
-num_experiments = 1 # equal seed
+num_experiments = 3 # equal seed
 show = False
-show = True
+# show = True
 
 # show = False
 algorithms = ["q-learning"]
@@ -68,10 +68,10 @@ for eps in epsilons:
         for experiment in range(1, num_experiments+1):
             rewards = []
             env = gym.make('Maze_v17', maze=maze, epsilon=eps, algorithm=alg, experiment=experiment, show=show)
-            env.reset()
-            env.render()
+            # env.render()
             rewards, q_table_1, q_table_2 = env.train(episodes, sleep_sec)
             results[(alg, eps)].append(rewards)
+            env.show_learned_path()
 
             # env.reset(change_phase=True)
             # rewards_2, q_table_2 = env.train(episodes, sleep_sec, start_pos=sub_goal, goal=end_goal_pos)
