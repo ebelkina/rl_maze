@@ -182,40 +182,6 @@ class MazeEnv(gym.Env):
                     pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size))
                 else:
                     ### Display Q-table as 4 numbers in a cell
-
-                    action_size_small = self.cell_size * 0.3
-                    action_size_large = self.cell_size * 0.4
-
-                    # Color and draw for action 0 (up)
-                    cell_color_0 = self.get_q_value_color(self.q_table_current[row, col, 0])
-                    pygame.draw.rect(self.screen, cell_color_0,
-                                     (cell_left + action_size_small, cell_top, action_size_large, action_size_small))
-
-                    # Color and draw for action 1 (right)
-                    cell_color_1 = self.get_q_value_color(self.q_table_current[row, col, 1])
-                    pygame.draw.rect(self.screen, cell_color_1, (
-                    cell_left + action_size_small + action_size_large, cell_top + action_size_small, action_size_large,
-                    action_size_small))
-
-                    # Color and draw for action 2 (down)
-                    cell_color_2 = self.get_q_value_color(self.q_table_current[row, col, 2])
-                    pygame.draw.rect(self.screen, cell_color_2, (
-                    cell_left + action_size_small, cell_top + action_size_large + action_size_small, action_size_large,
-                    action_size_small))
-
-                    # Color and draw for action 3 (left)
-                    cell_color_3 = self.get_q_value_color(self.q_table_current[row, col, 3])
-                    pygame.draw.rect(self.screen, cell_color_3,
-                                     (cell_left, cell_top + action_size_large, action_size_large, action_size_small))
-
-                    # Display Q-values as text inside the cell for each action
-                    text_up = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True, 'black')
-                    text_right = self.small_font.render(f'{self.q_table_current[row, col, 1]:.2f}', True, 'black')
-                    text_down = self.small_font.render(f'{self.q_table_current[row, col, 2]:.2f}', True, 'black')
-                    text_left = self.small_font.render(f'{self.q_table_current[row, col, 3]:.2f}', True, 'black')
-
-
-
                     if (row, col) == self.start_pos:
                         pygame.draw.rect(self.screen, 'green', (cell_left, cell_top, self.cell_size, self.cell_size),
                                          10)
@@ -225,6 +191,19 @@ class MazeEnv(gym.Env):
                         pygame.draw.rect(self.screen, 'red', (cell_left, cell_top, self.cell_size, self.cell_size), 10)
                     else:
                         pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size), 1)
+
+                    # Display Q-values as text inside the cell for each action
+                    # color_q_value = 'black'
+                    # if any(np.array_equal((row, col), np.array(p)) for p in self.current_path):
+                    #     color_q_value = 'red'
+                    # q_value_text = self.font.render(f'{max_q_value:.2f}', True, color_q_value)
+                    # text_rect = q_value_text.get_rect(center=cell_center)
+                    # self.screen.blit(q_value_text, text_rect)
+
+                    text_up = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True, 'black')
+                    text_right = self.small_font.render(f'{self.q_table_current[row, col, 1]:.2f}', True, 'black')
+                    text_down = self.small_font.render(f'{self.q_table_current[row, col, 2]:.2f}', True, 'black')
+                    text_left = self.small_font.render(f'{self.q_table_current[row, col, 3]:.2f}', True, 'black')
 
                     # Define positions for actions: up, right, down, left
                     cell_inside_up = (col * self.cell_size + 0.5 * self.cell_size,
@@ -236,10 +215,27 @@ class MazeEnv(gym.Env):
                     cell_inside_left = (col * self.cell_size + 0.2 * self.cell_size,
                                         row * self.cell_size + 0.5 * self.cell_size)
 
-                    self.screen.blit(text_up, text_up.get_rect(center=cell_inside_up))
-                    self.screen.blit(text_right, text_right.get_rect(center=cell_inside_right))
-                    self.screen.blit(text_down, text_down.get_rect(center=cell_inside_down))
-                    self.screen.blit(text_left, text_left.get_rect(center=cell_inside_left))
+                    # Draw gray rectangles behind the text for better visibility
+                    rect_up = text_up.get_rect(center=cell_inside_up)
+                    pygame.draw.rect(self.screen, self.get_q_value_color(self.q_table_current[row, col, 0]), rect_up)  # Draw gray rectangle for up action
+                    self.screen.blit(text_up, rect_up)
+
+                    rect_right = text_right.get_rect(center=cell_inside_right)
+                    pygame.draw.rect(self.screen, self.get_q_value_color(self.q_table_current[row, col, 1]), rect_right)  # Draw gray rectangle for right action
+                    self.screen.blit(text_right, rect_right)
+
+                    rect_down = text_down.get_rect(center=cell_inside_down)
+                    pygame.draw.rect(self.screen, self.get_q_value_color(self.q_table_current[row, col, 2]), rect_down)  # Draw gray rectangle for down action
+                    self.screen.blit(text_down, rect_down)
+
+                    rect_left = text_left.get_rect(center=cell_inside_left)
+                    pygame.draw.rect(self.screen, self.get_q_value_color(self.q_table_current[row, col, 3]), rect_left)  # Draw gray rectangle for left action
+                    self.screen.blit(text_left, rect_left)
+
+                    # self.screen.blit(text_up, text_up.get_rect(center=cell_inside_up))
+                    # self.screen.blit(text_right, text_right.get_rect(center=cell_inside_right))
+                    # self.screen.blit(text_down, text_down.get_rect(center=cell_inside_down))
+                    # self.screen.blit(text_left, text_left.get_rect(center=cell_inside_left))
 
                 # # Mark path if Done
                 # max_q_value = np.max(self.q_table[row, col])
