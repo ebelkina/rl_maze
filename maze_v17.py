@@ -151,7 +151,16 @@ class MazeEnv(gym.Env):
         # return np.array(self.current_pos), reward, self.done, None, {}
         return np.array(self.next_pos), reward, self.done, None, {}
 
-    def get_q_value_color(self, q_value):
+    def get_q_value_color(self, action):
+        path = self.current_path
+        if len(self.current_path) > 3:
+            pass
+        if action in self.current_path:
+            return 'red'
+        else:
+            return 'black'
+
+    def get_q_value_rect_color(self, q_value):
         """ Map a Q-value to a color between white (low Q) and middle gray (high Q). """
         # Normalize Q-value to a range between 0 and 1
         min = np.min(self.q_table_current)
@@ -200,42 +209,41 @@ class MazeEnv(gym.Env):
                     # text_rect = q_value_text.get_rect(center=cell_center)
                     # self.screen.blit(q_value_text, text_rect)
 
-                    text_up = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True, 'black')
-                    text_right = self.small_font.render(f'{self.q_table_current[row, col, 1]:.2f}', True, 'black')
-                    text_down = self.small_font.render(f'{self.q_table_current[row, col, 2]:.2f}', True, 'black')
-                    text_left = self.small_font.render(f'{self.q_table_current[row, col, 3]:.2f}', True, 'black')
+                    text_up = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True,
+                                                     self.get_q_value_color(((row, col), 0)))
+                    text_right = self.small_font.render(f'{self.q_table_current[row, col, 1]:.2f}', True,
+                                                        self.get_q_value_color(((row, col), 1)))
+                    text_down = self.small_font.render(f'{self.q_table_current[row, col, 2]:.2f}', True,
+                                                       self.get_q_value_color(((row, col), 2)))
+                    text_left = self.small_font.render(f'{self.q_table_current[row, col, 3]:.2f}', True,
+                                                       self.get_q_value_color(((row, col), 3)))
 
                     # Define positions for actions: up, right, down, left
                     cell_inside_up = (col * self.cell_size + 0.5 * self.cell_size,
-                                      row * self.cell_size + 0.1 * self.cell_size)
-                    cell_inside_right = (col * self.cell_size + 0.8 * self.cell_size,
+                                      row * self.cell_size + 0.18 * self.cell_size)
+                    cell_inside_right = (col * self.cell_size + 0.77 * self.cell_size,
                                          row * self.cell_size + 0.5 * self.cell_size)
                     cell_inside_down = (col * self.cell_size + 0.5 * self.cell_size,
-                                        row * self.cell_size + 0.8 * self.cell_size)
-                    cell_inside_left = (col * self.cell_size + 0.2 * self.cell_size,
+                                        row * self.cell_size + 0.87 * self.cell_size)
+                    cell_inside_left = (col * self.cell_size + 0.22 * self.cell_size,
                                         row * self.cell_size + 0.5 * self.cell_size)
 
                     # Draw gray rectangles behind the text for better visibility
                     rect_up = text_up.get_rect(center=cell_inside_up)
-                    pygame.draw.rect(self.screen, self.get_q_value_color(self.q_table_current[row, col, 0]), rect_up)  # Draw gray rectangle for up action
+                    pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 0]), rect_up)
                     self.screen.blit(text_up, rect_up)
 
                     rect_right = text_right.get_rect(center=cell_inside_right)
-                    pygame.draw.rect(self.screen, self.get_q_value_color(self.q_table_current[row, col, 1]), rect_right)  # Draw gray rectangle for right action
+                    pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 1]), rect_right)
                     self.screen.blit(text_right, rect_right)
 
                     rect_down = text_down.get_rect(center=cell_inside_down)
-                    pygame.draw.rect(self.screen, self.get_q_value_color(self.q_table_current[row, col, 2]), rect_down)  # Draw gray rectangle for down action
+                    pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 2]), rect_down)
                     self.screen.blit(text_down, rect_down)
 
                     rect_left = text_left.get_rect(center=cell_inside_left)
-                    pygame.draw.rect(self.screen, self.get_q_value_color(self.q_table_current[row, col, 3]), rect_left)  # Draw gray rectangle for left action
+                    pygame.draw.rect(self.screen, self.get_q_value_rect_color(self.q_table_current[row, col, 3]), rect_left)
                     self.screen.blit(text_left, rect_left)
-
-                    # self.screen.blit(text_up, text_up.get_rect(center=cell_inside_up))
-                    # self.screen.blit(text_right, text_right.get_rect(center=cell_inside_right))
-                    # self.screen.blit(text_down, text_down.get_rect(center=cell_inside_down))
-                    # self.screen.blit(text_left, text_left.get_rect(center=cell_inside_left))
 
                 # # Mark path if Done
                 # max_q_value = np.max(self.q_table[row, col])
@@ -423,6 +431,9 @@ class MazeEnv(gym.Env):
                     self.q_table_current = self.q_table_2
                     self.current_path = self.path_2 = []
 
+                self.current_path.append((self.current_pos, action))
+                rewards_episode.append(reward_immidiate)
+
                 if self.maze[self.next_pos[0], self.next_pos[1]] != '1': # TODO bounds, allowed
                     # Update the position
                     self.current_pos = self.next_pos
@@ -434,8 +445,7 @@ class MazeEnv(gym.Env):
                 # Add a small delay for better visualization
                 time.sleep(sleep_sec)
 
-                self.current_path.append((self.current_pos, action))
-                rewards_episode.append(reward_immidiate)
+
 
                 # Move to the next state
                 # self.current_pos = self.next_pos
