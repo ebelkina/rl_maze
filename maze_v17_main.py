@@ -3,13 +3,13 @@ import pygame
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
-from maze_v16_two_phases_4num import MazeEnv
+from maze_v17 import MazeEnv
 from scipy.stats import ttest_rel
 
 # Register the custom environment
 gym.register(
-    id='Maze_v16',
-    entry_point='maze_v16_two_phases_4num:MazeEnv',
+    id='Maze_v17',
+    entry_point='maze_v17:MazeEnv',
     kwargs={'maze': None}
 )
 
@@ -30,21 +30,13 @@ maze = [
 maze_np = np.array(maze)
 
 # Set sub-gaol
-# maze[5][3] = 'G' # initial
-# maze[1][3] = 'G'
+maze[5][3] = 'G' # initial
+# maze[1][4] = 'G'
 # maze[7][3] = 'G'
-
-# start = (1, 1)
-# sub_goal = (5, 3)
-# sub_goal = (1, 3)
-sub_goal = (7, 3)
-# end_goal = (8, 7)
-
-start = (int(np.where(maze_np == 'S')[0]), int(np.where(maze_np == 'S')[1]))
-end_goal_pos = (int(np.where(maze_np == 'E')[0]), int(np.where(maze_np == 'E')[1]))
+# maze[8][7] = 'G'
 
 # Parameters
-episodes = 300
+episodes = 3
 
 sleep_sec = 0
 # sleep_sec = 0.05
@@ -52,21 +44,20 @@ sleep_sec = 0
 
 num_experiments = 10 # equal seed
 show = False
-# show = True
+show = True
 
 # show = False
 algorithms = ["q-learning"]
 # algorithms = ["q-learning", "sarsa"]
 
-epsilons = [0]
-epsilons = [0, 0.001, 0.002, 0.003]
+epsilons = [0.001]
+# epsilons = [0, 0.001]
 
 alpha = 0.05
 
 # Initialize a dictionary to store the results for each algorithm
 # keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1)
-results_phase1 = {(alg, eps): [] for alg in algorithms for eps in epsilons}
-results_phase2 = {(alg, eps): [] for alg in algorithms for eps in epsilons}
+results = {(alg, eps): [] for alg in algorithms for eps in epsilons}
 
 # Maximum possible reward for the maze
 max_possible_reward = 86  # TODO check
@@ -75,29 +66,29 @@ max_possible_reward = 86  # TODO check
 for eps in epsilons:
     for alg in algorithms:
         for experiment in range(1, num_experiments+1):
-            rewards_1 = []
-            env = gym.make('Maze_v16', maze=maze, epsilon=eps, algorithm=alg, experiment=experiment, show=show)
+            rewards = []
+            env = gym.make('Maze_v17', maze=maze, epsilon=eps, algorithm=alg, experiment=experiment, show=show)
             env.reset()
             env.render()
-            rewards_1, q_table_1 = env.train(episodes, sleep_sec, start_pos=start, goal=sub_goal)
-            results_phase1[(alg, eps)].append(rewards_1)
+            rewards, q_table_1, q_table_2 = env.train(episodes, sleep_sec)
+            results[(alg, eps)].append(rewards)
 
-            env.reset(change_phase=True)
-            rewards_2, q_table_2 = env.train(episodes, sleep_sec, start_pos=sub_goal, goal=end_goal_pos)
-            results_phase2[(alg, eps)].append(rewards_2)
+            # env.reset(change_phase=True)
+            # rewards_2, q_table_2 = env.train(episodes, sleep_sec, start_pos=sub_goal, goal=end_goal_pos)
+            # results_phase2[(alg, eps)].append(rewards_2)
 
 # Convert results to numpy arrays for easy computation
-for key in results_phase1:  # keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1)
-    results_phase1[key] = np.array(results_phase1[key])
+for key in results:  # keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1)
+    results[key] = np.array(results[key])
     print(key)
-    print(results_phase1[key])
+    print(results[key])
 
 # Calculate average and standard deviation of rewards
 mean_rewards_phase1 = {}
 std_rewards_phase1 = {}
-for key in results_phase1: # keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1)
-    mean_rewards_phase1[key] = np.mean(results_phase1[key], axis=0)
-    std_rewards_phase1[key] = np.std(results_phase1[key], axis=0)
+for key in results: # keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1)
+    mean_rewards_phase1[key] = np.mean(results[key], axis=0)
+    std_rewards_phase1[key] = np.std(results[key], axis=0)
 
 mean_rewards_phase2 = {}
 std_rewards_phase2 = {}
