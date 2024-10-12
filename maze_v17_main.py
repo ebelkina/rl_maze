@@ -30,28 +30,30 @@ maze = [
 maze_np = np.array(maze)
 
 # Set sub-gaol
-maze[5][3] = 'G' # initial
-# maze[1][4] = 'G'
+# maze[5][3] = 'G' # initial
 # maze[7][3] = 'G'
-# maze[8][7] = 'G'
+# maze[2][3] = 'G'
+# maze[1][3] = 'G'
+maze[1][4] = 'G'
+# maze[6][8] = 'G'
 
 # Parameters
-episodes = 200
+episodes = 30
 
 sleep_sec = 0
 # sleep_sec = 0.05
 # sleep_sec = 0.5
 
-num_experiments = 10 # equal seed
+num_experiments = 1 # equal seed
 show = False
-# show = True
+show = True
 
 # show = False
 algorithms = ["q-learning"]
 # algorithms = ["q-learning", "sarsa"]
 
-# epsilons = [0.001]
-epsilons = [0, 0.001, 0.01, 0.1]
+epsilons = [0.001]
+# epsilons = [0, 0.001, 0.01, 0.1]
 
 reduce_epsilon = False
 reduce_epsilon = True
@@ -76,13 +78,13 @@ for eps in epsilons:
             env.render()
             rewards, q_table_1, q_table_2 = env.train(episodes, sleep_sec)
             results[(alg, eps)].append(rewards)
-            # env.show_learned_path()
+            env.show_learned_path()
 
 # Convert results to numpy arrays for easy computation
 for key in results:  # keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1)
     results[key] = np.array(results[key])
-    print(key)
-    print(results[key])
+    # print(key)
+    # print(results[key])
 
 # Calculate average and standard deviation of rewards
 mean_total_rewards = {}
