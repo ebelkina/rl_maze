@@ -141,7 +141,7 @@ class MazeEnv(gym.Env):
         elif self.q_table_current is self.q_table_2:
             return (color_value, color_value, 255)
 
-    def choose_action(self):
+    def choose_action(self, from_state):
 
         if self.algorithm == "q-learning" or self.algorithm == "sarsa":
             if np.random.uniform(0, 1) < self.epsilon: # Explore
@@ -151,7 +151,7 @@ class MazeEnv(gym.Env):
                 #                                  p=exploration_rate/np.sum(exploration_rate))
 
             else: # Exploit
-                row, col = self.current_state
+                row, col = from_state
                 # Find the max Q-value for current state
                 max_value = np.max(self.q_table_current[row, col])
                 # Get all actions that have the max Q-value
@@ -238,7 +238,7 @@ class MazeEnv(gym.Env):
 
             # For SARSA: Choose action A from S using policy derived from Q (e-greedy/count-based) TODO
             if self.algorithm == "sarsa":
-                action = self.choose_action()
+                action = self.choose_action(from_state=self.current_state)
 
             # Loop until the agent reaches the Sub-Goal and End-Goal or path is too long for this phase
             while not (self.done or len(self.current_path) > self.max_num_steps_per_phase):
@@ -250,7 +250,7 @@ class MazeEnv(gym.Env):
 
                 # For Q-learning: Choose action A from S using policy derived from Q (e-greedy/count-based) TODO
                 if self.algorithm == "q-learning":
-                    action = self.choose_action() # based on e-greedy/count-based
+                    action = self.choose_action(from_state=self.current_state) # based on e-greedy/count-based
 
                 # Take action A, observe R and S'
                 next_state, reward_immediate, self.done, _, _ = self.step(action)
@@ -259,7 +259,7 @@ class MazeEnv(gym.Env):
                 if self.algorithm == "q-learning": # based on max value (so epsilon=0)
                     self.update_q_value_qlearning(action, reward_immediate, next_state)
                 elif self.algorithm == "sarsa": # based on e-greedy/count-based
-                    next_action = self.choose_action()  # update action for the next step for SARSA based on e-greedy/count-based
+                    next_action = self.choose_action(from_state=next_state)  # update action for the next step for SARSA based on e-greedy/count-based
                     self.update_q_value_sarsa(action, reward_immediate, next_state, next_action)
                     action = next_action # TODO ???? update action for the next step for SARSA
 

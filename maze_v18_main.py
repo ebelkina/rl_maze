@@ -118,7 +118,7 @@ def place_sub_goal(maze, sub_goal_pos):
         print("Sub-goal cannot be places")
 
 ### Parameters
-episodes = 100
+episodes = 10
 
 sleep_sec = 0
 # sleep_sec = 0.05
@@ -126,7 +126,7 @@ sleep_sec = 0
 
 num_experiments = 10 # equal to seed
 show = False
-# show = True
+show = True
 
 # show = False
 # algorithms = ["q-learning"]
