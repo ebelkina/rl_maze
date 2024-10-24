@@ -76,7 +76,7 @@ def visualize_results(id, path, results, sub_goal):
             alpha=0.2
         )
 
-    plt.title(f'Sub-goal at Position {sub_goal}')
+    plt.title(f'Sub-Goal at Position {sub_goal}')
     plt.xlabel('Episodes')
     plt.ylabel('Average Total Rewards')
     plt.ylim(-300, 100)
@@ -100,12 +100,9 @@ maze = [
 
 # Define possible sub-goal positions and data for testing calculated manually
 sub_goals_map = {
-    (5, 3): {'max_possible_reward': 137, 'length_of_shortest_path': 15},
-    (7, 3): {'max_possible_reward': 8, 'length_of_shortest_path': 12},
-    (2, 3): {'max_possible_reward': 12, 'length_of_shortest_path': 18},
-    (1, 3): {'max_possible_reward': 7, 'length_of_shortest_path': 10},
-    (1, 4): {'max_possible_reward': 5, 'length_of_shortest_path': 8},
-    (6, 8): {'max_possible_reward': 15, 'length_of_shortest_path': 20},
+    (5, 3): {'opt_path_reward': 36, 'opt_path_len': 15},
+    (8, 3): {'opt_path_reward': 30, 'opt_path_len': 21},
+    (1, 4): {'opt_path_reward': 32, 'opt_path_len': 19}
 }
 # Set a sub-goal in the maze
 def place_sub_goal(maze, sub_goal_pos):
@@ -125,7 +122,7 @@ sleep_sec = 0
 # sleep_sec = 0.05
 # sleep_sec = 0.5
 
-num_experiments = 50 # equal to seed
+num_experiments = 10 # equal to seed
 show = False
 # show = True
 
@@ -146,25 +143,32 @@ alpha = 0.05
 # Maximum possible reward for the maze
 max_possible_reward = 137  # TODO check
 
-sub_goals = [(5,3), (7,3), (1,4)]
+# sub_goals = [(5,3), (8,3), (1,4)]
 # sub_goals = [(5,3)]
 # for sub_goal, _ in sub_goals_map.items():
 #     maze_with_sub_goal = place_sub_goal(maze_np, sub_goal)
 
 # Initialize a dictionary to store the results for each algorithm
 # keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1)
-results = {(sub_goal, alg, eps): [] for sub_goal in sub_goals for alg in algorithms for eps in epsilons}
+results = {(sub_goal, alg, eps): [] for sub_goal in sub_goals_map.keys() for alg in algorithms for eps in epsilons}
 
 
 
-id = 1
-path = '.\\results'
+path = './results'
 
 # Run the experiments
-for sub_goal in sub_goals:
+for sub_goal, sub_goal_data in sub_goals_map.items():
+    max_possible_reward = sub_goal_data['opt_path_reward']
+    length_of_shortest_path = sub_goal_data['opt_path_len']
+    maze_with_sub_goal = place_sub_goal(maze, sub_goal)
+    print(f'Running for Sub-Goal {sub_goal} - Max Reward: {max_possible_reward}, Path Length: {length_of_shortest_path}')
     maze_with_sub_goal = place_sub_goal(maze, sub_goal)
     print('maze_with_sub_goal', maze_with_sub_goal)
-    output_folder = f'{path}_{sub_goal}_{id}'
+    output_folder = f'{path}/{sub_goal}/'
+
+    opt_path_reward = sub_goal_data['opt_path_reward']
+    opt_path_len = sub_goal_data['opt_path_len']
+
     for alg in algorithms:
         for eps in epsilons:
             for experiment in range(1, num_experiments+1):
@@ -175,15 +179,53 @@ for sub_goal in sub_goals:
                                experiment=experiment, show=show, reduce_epsilon=reduce_epsilon, alpha=alpha)
                 env.reset()
                 env.render()
-                rewards, path_lengths, q_table_1, q_table_2 = env.train(episodes, sleep_sec)
+                rewards, path_lengths, optimal_path_found, q_table_1, q_table_2 = env.train(episodes, sleep_sec,
+                                                                        opt_path_reward, opt_path_len)
                 results[(sub_goal, alg, eps)].append(rewards)
                 # csv
-                learned_path, learned_path_reward = env.show_learned_path()
-                # print("learned_path", learned_path)
-                print("learned_path_reward", learned_path_reward)
+                # learned_path, learned_path_reward = env.check_learned_path(opt_path_reward, opt_path_len)
+                # print("learned_path LEN", len(learned_path))
+                # print("learned_path_reward", learned_path_reward)
+                # print('optimal_path_found', optimal_path_found)
+
+                # Save results to DataFrame and CSV
+                df_results = pd.DataFrame({
+                    'Episode': range(1, len(rewards) + 1),
+                    'Reward': rewards,
+                    'Path_Length': path_lengths,
+                    'Optimal_Path_Found': optimal_path_found
+                })
+
+                # Define CSV file name
+                csv_filename = f"{output_folder}/{alg}/exp{experiment}.csv"
+
+                # Save to CSV
+                df_results.to_csv(csv_filename, index=False)
+                print(f"Saved results to {csv_filename}")
 
 # Visualize the results for each sub-goal
-for sub_goal in sub_goals:
+for sub_goal in sub_goals_map.keys():
     visualize_results(id, path, results, sub_goal)
 
-
+# # Parameters
+# initial_epsilon = 0.1
+# reduction_factor = 0.99
+# episodes = 200
+#
+# # Track epsilon values over episodes
+# epsilon_values = []
+# epsilon = initial_epsilon
+#
+# for episode in range(episodes):
+#     epsilon_values.append(epsilon)
+#     epsilon *= reduction_factor
+#
+# # Plotting
+# plt.figure(figsize=(5, 3))
+# plt.plot(range(episodes), epsilon_values, label='Epsilon per Episode')
+# plt.title('Epsilon Reduction Over Episodes')
+# plt.xlabel('Episodes')
+# plt.ylabel('Epsilon Value')
+# plt.grid(True, linestyle='--', linewidth=0.5)
+# plt.legend()
+# plt.show()

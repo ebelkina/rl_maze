@@ -85,8 +85,10 @@ class MazeEnv(gym.Env):
         self.counts_current = self.counts_1
         self.current_path = self.path_1 = []
 
-    def step(self, action):
+    def step(self, action, current_state):
         # Map actions to changes in position
+        done = False
+
         actions_map = {
             0: (-1, 0),  # up
             1: (0, 1),  # right
@@ -95,7 +97,7 @@ class MazeEnv(gym.Env):
         }
 
         # Compute next state
-        self.next_state = (self.current_state[0] + actions_map[action][0], self.current_state[1] + actions_map[action][1])
+        self.next_state = (current_state[0] + actions_map[action][0], current_state[1] + actions_map[action][1])
 
         # if self.show:
         #     print(f"self.next_state, {self.next_state} = ({self.current_state[0]} + {actions_map[action][0]}, {self.current_state[1]} + {actions_map[action][1]})")
@@ -118,9 +120,10 @@ class MazeEnv(gym.Env):
                     reward = 50  # Reward for reaching the final goal
                 # else:
                 #     reward = -10
-                self.done = True
+                done = True
 
-        return np.array(self.next_state), reward, self.done, None, {}
+        # return np.array(self.next_state), reward, self.done, None, {}
+        return self.next_state, reward, done, None, {}
 
     def get_q_value_color(self, action):
         return 'red' if action in self.current_path else 'black'
@@ -145,10 +148,10 @@ class MazeEnv(gym.Env):
 
         if self.algorithm == "q-learning" or self.algorithm == "sarsa":
             if np.random.uniform(0, 1) < self.epsilon: # Explore
-                chosen_action = self.action_space.sample()
-                # exploration_rate = 1/self.counts_current[self.current_state]
-                # chosen_action = np.random.choice(len(self.q_table_current[self.current_state]),
-                #                                  p=exploration_rate/np.sum(exploration_rate))
+                # chosen_action = self.action_space.sample()
+                exploration_rate = 1/self.counts_current[self.current_state]
+                chosen_action = np.random.choice(len(self.q_table_current[self.current_state]),
+                                                 p=exploration_rate/np.sum(exploration_rate))
 
             else: # Exploit
                 row, col = from_state
@@ -195,7 +198,7 @@ class MazeEnv(gym.Env):
             print(f"updated_q-table for {next_row}, {next_col}\n", self.q_table_current[next_row, next_col])
 
     def update_q_value_sarsa(self, action, reward, next_state, next_action):
-        next_state, reward_immediate, self.done, _, _ = self.step(action)
+        next_state, reward_immediate, self.done, _, _ = self.step(action, self.current_state)
         row, col = self.current_state
         next_row, next_col = next_state
         # td_target = reward + self.gamma * self.q_table_current[next_row, next_col, next_action]
@@ -222,12 +225,13 @@ class MazeEnv(gym.Env):
             print(f"updated_q-table for {next_row}, {next_col}\n", self.q_table_current[next_row, next_col])
 
 
-    def train(self, episodes=100, sleep_sec=0):
+    def train(self, episodes=100, sleep_sec=0, opt_path_reward=0, opt_path_len=0):
         random.seed(self.experiment)
         np.random.seed(self.experiment)
 
         total_rewards_in_episodes = []
         path_length_in_episodes = []
+        optimal_path_found = []
 
         for episode in range(1, episodes+1):
             self.episode = episode
@@ -253,7 +257,7 @@ class MazeEnv(gym.Env):
                 action = self.choose_action(from_state=self.current_state) # based on e-greedy/count-based
 
                 # Take action A, observe R and S'
-                next_state, reward_immediate, self.done, _, _ = self.step(action)
+                next_state, reward_immediate, self.done, _, _ = self.step(action, self.current_state)
 
                 # Update Q-value
                 if self.algorithm == "q-learning": # based on max value (so epsilon=0)
@@ -292,50 +296,67 @@ class MazeEnv(gym.Env):
             if self.reduce_epsilon:
                 self.epsilon *= 0.95
 
-            # self.reached_goals = set()
+            learned_path, learned_path_reward = self.check_learned_path(opt_path_reward, opt_path_len)
+            if learned_path_reward == opt_path_reward:
+                # print("learned_path LEN", len(learned_path))
+                # print("learned_path_reward", learned_path_reward)
+                # print('episode', episode)
+                optimal_path_found.append(1)
+            else:
+                optimal_path_found.append(0)
+
             total_rewards_in_episodes.append(self.total_reward)
             path_length_in_episodes.append(len(self.current_path))
-            # print(f"Episode {episode + 1}: Total Reward: {self.total_reward}")
 
-        return total_rewards_in_episodes, path_length_in_episodes, self.q_table_1, self.q_table_2
 
-    def show_learned_path(self):
+        return total_rewards_in_episodes, path_length_in_episodes, optimal_path_found, self.q_table_1, self.q_table_2
+
+    def check_learned_path(self,opt_path_reward, opt_path_len):
         # Reset the environment but keep needed parameters (so it's not the standard reset)
-        self.current_state = self.start_pos
-        self.q_table_current = self.q_table_1
-        self.current_path = []
-        self.done = False
-        self.total_reward = 0
-        self.sub_goal_reached = False
-        self.epsiepsilon = 0
-        self.show = True#False
+        current_state = self.start_pos
+        q_table = self.q_table_1  # copy?
+        learned_path = []
+        done = False
+        total_reward = 0
+        sub_goal_reached = False
+        epsilon = 0
+        show = True#False
 
         # Loop until the agent reaches the Sub-Goal and End-Goal or whole path is too long
-        while not (self.done or len(self.current_path) > 2 * self.maze.size):
+        while not done and len(learned_path) <= opt_path_len:
             self.handle_events() # Handle button events
             if self.is_paused: # Check if the game is paused
                 continue
 
             # Take the best action based on Q-values (greedy) to show the best path found
-            row, col = self.current_state
-            action = np.argmax(self.q_table_current[row, col])
-            _, reward_immediate, self.done, _, _ = self.step(action)
+            row, col = current_state
+            action = np.argmax(q_table[row, col])
+            next_state, reward_immediate, done, _, _ = self.step(action, current_state)
+            # print('current_state', current_state)
+            # print('q_table[row, col]', q_table[row, col])
+            # print('action', action)
+            # print('next_state', next_state)
+            # print('reward_immediate', reward_immediate)
 
             # Switch to q_table_2 if Sub-Goal is reached
-            if self.next_state == self.sub_goal_pos and not self.sub_goal_reached:
-                self.sub_goal_reached = True
-                self.q_table_current = self.q_table_2
+            if next_state == self.sub_goal_pos and not sub_goal_reached:
+                sub_goal_reached = True
+                q_table = self.q_table_2
 
-            self.current_path.append(self.current_state)
-            self.total_reward += reward_immediate
+            learned_path.append(current_state)
+            total_reward += reward_immediate
+            # print('learned_path', learned_path)
+            # print('total_reward', total_reward)
 
             # Move to the next state if it's not a wall
-            if self.maze[self.next_state[0], self.next_state[1]] != '1':
-                self.current_state = self.next_state
+            if self.maze[next_state] != '1':
+                current_state = next_state
+                # print('OLD next_state', next_state)
+                # print('current_state', current_state)
 
             # self.render(show_learned_path=True)
             # time.sleep(0.05) # Slow down the visualization to see the path
-        return self.current_path, self.total_reward
+        return learned_path, total_reward
 
     def render(self, show_learned_path=False):
         self.screen.fill((255, 255, 255))
