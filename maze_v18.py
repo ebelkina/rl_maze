@@ -97,27 +97,27 @@ class MazeEnv(gym.Env):
         # Compute next state
         self.next_state = (self.current_state[0] + actions_map[action][0], self.current_state[1] + actions_map[action][1])
 
-        if self.show:
-            print(f"self.next_state, {self.next_state} = ({self.current_state[0]} + {actions_map[action][0]}, {self.current_state[1]} + {actions_map[action][1]})")
+        # if self.show:
+        #     print(f"self.next_state, {self.next_state} = ({self.current_state[0]} + {actions_map[action][0]}, {self.current_state[1]} + {actions_map[action][1]})")
 
         reward = -1 # Small penalty for regular movement
 
         # Check if the next state is a wall
         if self.maze[self.next_state[0], self.next_state[1]] == '1':
-            reward = -100  # Penalty for hitting a wall
+            reward = -50  # Penalty for hitting a wall
             if self.show:
                 print('wall >> state in same position')
         else:
             # Check if agent reaches the sub-goal for the first time
             if self.next_state == self.sub_goal_pos and not self.sub_goal_reached:
-                reward = 50  # Small reward
+                reward = 20  # Small reward
 
             # Check if agent reaches the final goal
             elif self.next_state == self.end_goal_pos:
                 if self.sub_goal_reached:
-                    reward = 100  # Reward for reaching the final goal
-                else:
-                    reward = -10
+                    reward = 50  # Reward for reaching the final goal
+                # else:
+                #     reward = -10
                 self.done = True
 
         return np.array(self.next_state), reward, self.done, None, {}
@@ -237,8 +237,8 @@ class MazeEnv(gym.Env):
             rewards_episode = []
 
             # For SARSA: Choose action A from S using policy derived from Q (e-greedy/count-based) TODO
-            if self.algorithm == "sarsa":
-                action = self.choose_action(from_state=self.current_state)
+            # if self.algorithm == "sarsa":
+            #     action = self.choose_action(from_state=self.current_state)
 
             # Loop until the agent reaches the Sub-Goal and End-Goal or path is too long for this phase
             while not (self.done or len(self.current_path) > self.max_num_steps_per_phase):
@@ -249,8 +249,8 @@ class MazeEnv(gym.Env):
                     self.render()
 
                 # For Q-learning: Choose action A from S using policy derived from Q (e-greedy/count-based) TODO
-                if self.algorithm == "q-learning":
-                    action = self.choose_action(from_state=self.current_state) # based on e-greedy/count-based
+                # if self.algorithm == "q-learning":
+                action = self.choose_action(from_state=self.current_state) # based on e-greedy/count-based
 
                 # Take action A, observe R and S'
                 next_state, reward_immediate, self.done, _, _ = self.step(action)
@@ -261,7 +261,7 @@ class MazeEnv(gym.Env):
                 elif self.algorithm == "sarsa": # based on e-greedy/count-based
                     next_action = self.choose_action(from_state=next_state)  # update action for the next step for SARSA based on e-greedy/count-based
                     self.update_q_value_sarsa(action, reward_immediate, next_state, next_action)
-                    action = next_action # TODO ???? update action for the next step for SARSA
+                    # action = next_action # TODO ???? update action for the next step for SARSA
 
                 if self.next_state == self.sub_goal_pos and not self.sub_goal_reached:
                     self.sub_goal_reached = True
@@ -333,8 +333,8 @@ class MazeEnv(gym.Env):
             if self.maze[self.next_state[0], self.next_state[1]] != '1':
                 self.current_state = self.next_state
 
-            self.render(show_learned_path=False)#True)
-            time.sleep(0.05) # Slow down the visualization to see the path
+            # self.render(show_learned_path=True)
+            # time.sleep(0.05) # Slow down the visualization to see the path
         return self.current_path, self.total_reward
 
     def render(self, show_learned_path=False):
