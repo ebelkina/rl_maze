@@ -6,6 +6,7 @@ import pygame
 import matplotlib.pyplot as plt
 from gym.envs.registration import register
 import time
+import wandb
 
 class MazeEnv(gym.Env):
     def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.01,
@@ -307,6 +308,16 @@ class MazeEnv(gym.Env):
 
             total_rewards_in_episodes.append(self.total_reward)
             path_length_in_episodes.append(len(self.current_path))
+
+            wandb.log({
+                'sub_goal_pos': self.sub_goal_pos,
+                'algorithm': self.algorithm,
+                'epsilon': self.epsilon,
+                'episode': episode,
+                'total_reward': self.total_reward,
+                'path_length': len(self.current_path),
+                'optimal_path_found': optimal_path_found[-1]
+            })
 
 
         return total_rewards_in_episodes, path_length_in_episodes, optimal_path_found, self.q_table_1, self.q_table_2

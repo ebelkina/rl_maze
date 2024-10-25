@@ -6,6 +6,7 @@ import pandas as pd
 from maze_v19 import MazeEnv
 from scipy.stats import ttest_rel
 import copy
+import wandb
 
 # Register the custom environment
 gym.register(
@@ -156,12 +157,13 @@ results = {(sub_goal, alg, eps): [] for sub_goal in sub_goals_map.keys() for alg
 
 path = './results'
 
-# Run the experiments
+# Initialize W&B experiment
 for sub_goal, sub_goal_data in sub_goals_map.items():
     max_possible_reward = sub_goal_data['opt_path_reward']
     length_of_shortest_path = sub_goal_data['opt_path_len']
     maze_with_sub_goal = place_sub_goal(maze, sub_goal)
-    print(f'Running for Sub-Goal {sub_goal} - Max Reward: {max_possible_reward}, Path Length: {length_of_shortest_path}')
+    print(
+        f'Running for Sub-Goal {sub_goal} - Max Reward: {max_possible_reward}, Path Length: {length_of_shortest_path}')
     maze_with_sub_goal = place_sub_goal(maze, sub_goal)
     print('maze_with_sub_goal', maze_with_sub_goal)
     output_folder = f'{path}/{sub_goal}/'
@@ -171,61 +173,137 @@ for sub_goal, sub_goal_data in sub_goals_map.items():
 
     for alg in algorithms:
         for eps in epsilons:
-            for experiment in range(1, num_experiments+1):
-                rewards = []
-                # env = gym.make('Maze_v19', maze=maze_with_sub_goal, sub_goal=sub_goal, epsilon=epsilon, algorithm=alg,
-                #                experiment=experiment, show=show, reduce_epsilon=reduce_epsilon)
+            for experiment in range(1, num_experiments + 1):
+
+                # Initialize W&B for this run
+                wandb.init(
+                    project="maze-rl-experiments",
+                    name=f"02_{alg}_{sub_goal}_exp{experiment}",
+                    config={
+                        "algorithm": alg,
+                        "epsilon": eps,
+                        "alpha": alpha,
+                        "episodes": episodes,
+                        "sub_goal": sub_goal,
+                        "max_possible_reward": max_possible_reward,
+                        "length_of_shortest_path": length_of_shortest_path,
+                        "experiment_number": experiment
+                    }
+                )
+
+                # Create environment
                 env = gym.make('Maze_v19', maze=maze_with_sub_goal, epsilon=eps, algorithm=alg,
                                experiment=experiment, show=show, reduce_epsilon=reduce_epsilon, alpha=alpha)
                 env.reset()
                 env.render()
-                rewards, path_lengths, optimal_path_found, q_table_1, q_table_2 = env.train(episodes, sleep_sec,
-                                                                        opt_path_reward, opt_path_len)
-                results[(sub_goal, alg, eps)].append(rewards)
-                # csv
-                # learned_path, learned_path_reward = env.check_learned_path(opt_path_reward, opt_path_len)
-                # print("learned_path LEN", len(learned_path))
-                # print("learned_path_reward", learned_path_reward)
-                # print('optimal_path_found', optimal_path_found)
 
-                # Save results to DataFrame and CSV
-                df_results = pd.DataFrame({
-                    'Episode': range(1, len(rewards) + 1),
-                    'Reward': rewards,
-                    'Path_Length': path_lengths,
-                    'Optimal_Path_Found': optimal_path_found
-                })
+                # Train and log data
+                rewards, path_lengths, optimal_path_found, q_table_1, q_table_2 = env.train(
+                    episodes, sleep_sec, opt_path_reward, opt_path_len)
 
-                # Define CSV file name
-                csv_filename = f"{output_folder}/{alg}/exp{experiment}.csv"
+                # Log data to W&B after each episode
+                for episode in range(episodes):
+                    chart_name=f"03_{alg}_{sub_goal}"
 
-                # Save to CSV
-                df_results.to_csv(csv_filename, index=False)
-                print(f"Saved results to {csv_filename}")
+                    wandb.log({
+                        f'Episode {chart_name}': episode + 1,
+                        f'Reward {chart_name}': rewards[episode],
+                        f'Path_Length {chart_name}': path_lengths[episode],
+                        f'Optimal_Path_Found {chart_name}': optimal_path_found[episode]
+                    })
 
-# Visualize the results for each sub-goal
-for sub_goal in sub_goals_map.keys():
-    visualize_results(id, path, results, sub_goal)
+                # # Save results to CSV
+                # df_results = pd.DataFrame({
+                #     'Episode': range(1, len(rewards) + 1),
+                #     'Reward': rewards,
+                #     'Path_Length': path_lengths,
+                #     'Optimal_Path_Found': optimal_path_found
+                # })
+                #
+                # # Define CSV file name
+                # csv_filename = f"{output_folder}/{alg}/exp{experiment}.csv"
+                #
+                # # Save to CSV
+                # df_results.to_csv(csv_filename, index=False)
+                # print(f"Saved results to {csv_filename}")
 
-# # Parameters
-# initial_epsilon = 0.1
-# reduction_factor = 0.99
-# episodes = 200
-#
-# # Track epsilon values over episodes
-# epsilon_values = []
-# epsilon = initial_epsilon
-#
-# for episode in range(episodes):
-#     epsilon_values.append(epsilon)
-#     epsilon *= reduction_factor
-#
-# # Plotting
-# plt.figure(figsize=(5, 3))
-# plt.plot(range(episodes), epsilon_values, label='Epsilon per Episode')
-# plt.title('Epsilon Reduction Over Episodes')
-# plt.xlabel('Episodes')
-# plt.ylabel('Epsilon Value')
-# plt.grid(True, linestyle='--', linewidth=0.5)
-# plt.legend()
-# plt.show()
+                # Save artifacts (e.g., model, Q-tables) if necessary
+                # You can log other files like models or configurations as needed
+                # wandb.save(csv_filename)
+
+                # Finish the W&B run
+                wandb.finish()
+                
+# # Run the experiments
+# for sub_goal, sub_goal_data in sub_goals_map.items():
+#     max_possible_reward = sub_goal_data['opt_path_reward']
+#     length_of_shortest_path = sub_goal_data['opt_path_len']
+#     maze_with_sub_goal = place_sub_goal(maze, sub_goal)
+#     print(f'Running for Sub-Goal {sub_goal} - Max Reward: {max_possible_reward}, Path Length: {length_of_shortest_path}')
+#     maze_with_sub_goal = place_sub_goal(maze, sub_goal)
+#     print('maze_with_sub_goal', maze_with_sub_goal)
+#     output_folder = f'{path}/{sub_goal}/'
+# 
+#     opt_path_reward = sub_goal_data['opt_path_reward']
+#     opt_path_len = sub_goal_data['opt_path_len']
+# 
+#     for alg in algorithms:
+#         for eps in epsilons:
+#             for experiment in range(1, num_experiments+1):
+#                 rewards = []
+#                 # env = gym.make('Maze_v19', maze=maze_with_sub_goal, sub_goal=sub_goal, epsilon=epsilon, algorithm=alg,
+#                 #                experiment=experiment, show=show, reduce_epsilon=reduce_epsilon)
+#                 env = gym.make('Maze_v19', maze=maze_with_sub_goal, epsilon=eps, algorithm=alg,
+#                                experiment=experiment, show=show, reduce_epsilon=reduce_epsilon, alpha=alpha)
+#                 env.reset()
+#                 env.render()
+#                 rewards, path_lengths, optimal_path_found, q_table_1, q_table_2 = env.train(episodes, sleep_sec,
+#                                                                         opt_path_reward, opt_path_len)
+#                 results[(sub_goal, alg, eps)].append(rewards)
+#                 # csv
+#                 # learned_path, learned_path_reward = env.check_learned_path(opt_path_reward, opt_path_len)
+#                 # print("learned_path LEN", len(learned_path))
+#                 # print("learned_path_reward", learned_path_reward)
+#                 # print('optimal_path_found', optimal_path_found)
+# 
+#                 # Save results to DataFrame and CSV
+#                 df_results = pd.DataFrame({
+#                     'Episode': range(1, len(rewards) + 1),
+#                     'Reward': rewards,
+#                     'Path_Length': path_lengths,
+#                     'Optimal_Path_Found': optimal_path_found
+#                 })
+# 
+#                 # Define CSV file name
+#                 csv_filename = f"{output_folder}/{alg}/exp{experiment}.csv"
+# 
+#                 # Save to CSV
+#                 df_results.to_csv(csv_filename, index=False)
+#                 print(f"Saved results to {csv_filename}")
+# 
+# # Visualize the results for each sub-goal
+# for sub_goal in sub_goals_map.keys():
+#     visualize_results(id, path, results, sub_goal)
+# 
+# # # Parameters
+# # initial_epsilon = 0.1
+# # reduction_factor = 0.99
+# # episodes = 200
+# #
+# # # Track epsilon values over episodes
+# # epsilon_values = []
+# # epsilon = initial_epsilon
+# #
+# # for episode in range(episodes):
+# #     epsilon_values.append(epsilon)
+# #     epsilon *= reduction_factor
+# #
+# # # Plotting
+# # plt.figure(figsize=(5, 3))
+# # plt.plot(range(episodes), epsilon_values, label='Epsilon per Episode')
+# # plt.title('Epsilon Reduction Over Episodes')
+# # plt.xlabel('Episodes')
+# # plt.ylabel('Epsilon Value')
+# # plt.grid(True, linestyle='--', linewidth=0.5)
+# # plt.legend()
+# # plt.show()
