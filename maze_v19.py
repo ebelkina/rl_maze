@@ -10,7 +10,7 @@ import wandb
 
 class MazeEnv(gym.Env):
     def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.01,
-                 algorithm="random", experiment=0, show=True, reduce_epsilon=False):
+                 algorithm="random", experiment=0, show=True, reduce_epsilon=False, output_folder="./results"):
         super(MazeEnv, self).__init__()
         self.maze = np.array(maze)
         self.start_pos = (int(np.where(self.maze == 'S')[0]), int(np.where(self.maze == 'S')[1]))
@@ -68,6 +68,7 @@ class MazeEnv(gym.Env):
         self.image_counter = 1
         self.max_num_steps_per_phase = 4 * self.maze.size # Assume TODO
         self.reduce_epsilon = reduce_epsilon
+        self.output_folder = output_folder
 
     def get_q_table(self):
         if not self.sub_goal_reached:
@@ -309,16 +310,17 @@ class MazeEnv(gym.Env):
             total_rewards_in_episodes.append(self.total_reward)
             path_length_in_episodes.append(len(self.current_path))
 
-            wandb.log({
-                'sub_goal_pos': self.sub_goal_pos,
-                'algorithm': self.algorithm,
-                'epsilon': self.epsilon,
-                'episode': episode,
-                'total_reward': self.total_reward,
-                'path_length': len(self.current_path),
-                'optimal_path_found': optimal_path_found[-1]
-            })
-
+            # ###########################
+            # wandb.log({
+            #     'sub_goal_pos': self.sub_goal_pos,
+            #     'algorithm': self.algorithm,
+            #     'epsilon': self.epsilon,
+            #     'episode': episode,
+            #     'total_reward': self.total_reward,
+            #     'path_length': len(self.current_path),
+            #     'optimal_path_found': optimal_path_found[-1]
+            # })
+            # ###########################
 
         return total_rewards_in_episodes, path_length_in_episodes, optimal_path_found, self.q_table_1, self.q_table_2
 
@@ -466,7 +468,7 @@ class MazeEnv(gym.Env):
         pygame.display.update()
 
         # Save each rendering as png for algorithm verification
-        pygame.image.save(self.screen, f".//saved//v17_{self.image_counter}.png")
+        pygame.image.save(self.screen, f"{self.output_folder}/v19_{self.image_counter}.png")
         self.image_counter += 1
 
     def toggle_pause(self):
