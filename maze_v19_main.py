@@ -156,7 +156,7 @@ results = {(sub_goal, alg, eps): [] for sub_goal in sub_goals_map.keys() for alg
 
 
 path = './results'
-
+id = '03'
 # Initialize W&B experiment
 for sub_goal, sub_goal_data in sub_goals_map.items():
     max_possible_reward = sub_goal_data['opt_path_reward']
@@ -178,7 +178,7 @@ for sub_goal, sub_goal_data in sub_goals_map.items():
                 # Initialize W&B for this run
                 wandb.init(
                     project="maze-rl-experiments",
-                    name=f"02_{alg}_{sub_goal}_exp{experiment}",
+                    name=f"{id}_{alg}_{sub_goal}_exp{experiment}",
                     config={
                         "algorithm": alg,
                         "epsilon": eps,
@@ -203,7 +203,7 @@ for sub_goal, sub_goal_data in sub_goals_map.items():
 
                 # Log data to W&B after each episode
                 for episode in range(episodes):
-                    chart_name=f"03_{alg}_{sub_goal}"
+                    chart_name=f"{id}_{alg}_{sub_goal}"
 
                     wandb.log({
                         f'Episode {chart_name}': episode + 1,
