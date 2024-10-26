@@ -67,7 +67,7 @@ class MazeEnv(gym.Env):
         self.path_2 = []
         self.current_path = self.path_1
         self.image_counter = 1
-        self.max_num_steps_per_phase = 4 * self.maze.size # Assume TODO
+        self.max_num_steps_per_phase = 500 # 4 * self.maze.size # Assume TODO
         self.reduce_epsilon = reduce_epsilon
         self.output_folder = output_folder
 
@@ -105,17 +105,17 @@ class MazeEnv(gym.Env):
         # if self.show_training:
         #     print(f"self.next_state, {self.next_state} = ({self.current_state[0]} + {actions_map[action][0]}, {self.current_state[1]} + {actions_map[action][1]})")
 
-        reward = -1 # Small penalty for regular movement
+        reward = -0.1 # Small penalty for regular movement
 
         # Check if the next state is a wall
         if self.maze[self.next_state[0], self.next_state[1]] == '1':
-            reward = -50  # Penalty for hitting a wall
+            reward = -1  # Penalty for hitting a wall
             if self.show_training:
                 print('wall >> state in same position')
         else:
             # Check if agent reaches the sub-goal for the first time
             if self.next_state == self.sub_goal_pos and not self.sub_goal_reached:
-                reward = 20  # Small reward
+                reward = 10  # Small reward
 
             # Check if agent reaches the final goal
             elif self.next_state == self.end_goal_pos:
@@ -235,14 +235,12 @@ class MazeEnv(gym.Env):
         total_rewards_in_episodes = []
         path_length_in_episodes = []
         optimal_path_found = []
-
-        for episode in range(1, episodes+1):
-            self.episode = episode
-
-
+        optimal_path_found_flag = False
+        self.episode = 1
+        rewards_in_run = []
+        while self.episode <= episodes and not optimal_path_found_flag:
+        # for episode in range(1, episodes+1) :
             self.reset()
-            rewards_episode = []
-
             # For SARSA: Choose action A from S using policy derived from Q (e-greedy/count-based) TODO
             # if self.algorithm == "sarsa":
             #     action = self.choose_action(from_state=self.current_state)
@@ -277,7 +275,7 @@ class MazeEnv(gym.Env):
                     self.current_path = self.path_2 = []
 
                 self.current_path.append((self.current_state, action))
-                rewards_episode.append(reward_immediate)
+
 
                 # Move to the next state if it's not a wall
                 if self.maze[self.next_state[0], self.next_state[1]] != '1':
@@ -285,21 +283,21 @@ class MazeEnv(gym.Env):
                     self.current_state = self.next_state
 
                 self.total_reward += reward_immediate
-
-
+                rewards_in_run.append(self.total_reward)
 
             if self.show_training:
                 print('total_reward', self.total_reward)
                 print('path: ', self.current_path)
-                print('rewards_episode: ', rewards_episode)
+                print('rewards_episode: ', rewards_in_run)
                 # print('reached_goals', self.reached_goals)
 
-            if episode == episodes and self.show_training: # TODO fix
+            if self.episode == episodes and self.show_training: # TODO fix
                 self.render()
                 time.sleep(sleep_sec) # Add a small delay for better visualization
 
             if self.reduce_epsilon:
                 self.epsilon *= 0.95
+                # self.epsilon = max(0, self.epsilon - 0.01)
 
             learned_path, learned_path_reward = self.check_learned_path(opt_path_reward, opt_path_len)
             # print('learned_path_reward', learned_path_reward)
@@ -309,30 +307,32 @@ class MazeEnv(gym.Env):
                 # print("learned_path LEN", len(learned_path))
                 # print("learned_path_reward", learned_path_reward)
                 # print('episode', episode)
-                optimal_path_found.append(1)
-            else:
-                optimal_path_found.append(0)
+                # optimal_path_found.append(1)
+                optimal_path_found_flag = True
+            # else:
+                # optimal_path_found.append(0)
 
-            total_rewards_in_episodes.append(self.total_reward)
-            path_length_in_episodes.append(len(self.current_path))
+            # total_rewards_in_episodes.extend(self.total_reward)
+            # path_length_in_episodes.extend(len(self.current_path))
 
-            if episode == episodes and self.show_training:
+            if self.episode == episodes and self.show_training:
                 self.render()
                 time.sleep(0.05) # Slow down the visualization to see the path
 
+            self.episode += 1
             # ###########################
             # wandb.log({
             #     'sub_goal_pos': self.sub_goal_pos,
             #     'algorithm': self.algorithm,
             #     'epsilon': self.epsilon,
-            #     'episode': episode,
+            #     # 'episode': episode,
             #     'total_reward': self.total_reward,
             #     'path_length': len(self.current_path),
-            #     'optimal_path_found': optimal_path_found[-1]
+            #     # 'optimal_path_found': optimal_path_found[-1]
             # })
             # ###########################
 
-        return total_rewards_in_episodes, path_length_in_episodes, optimal_path_found, self.q_table_1, self.q_table_2
+        return rewards_in_run, path_length_in_episodes, len(self.current_path), self.q_table_1, self.q_table_2
 
     def check_learned_path(self,opt_path_reward, opt_path_len):
         # Reset the environment but keep needed parameters (so it's not the standard reset)

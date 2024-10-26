@@ -34,18 +34,15 @@ maze = [
 # TODO check values
 sub_goals_map = {
     (5, 3): {'opt_path_reward': 36, 'opt_path_len': 15},
-    # (7, 3): {'opt_path_reward': 32, 'opt_path_len': 19},
     (1, 4): {'opt_path_reward': 32, 'opt_path_len': 19},
     (8, 3): {'opt_path_reward': 30, 'opt_path_len': 21},
-    # (8, 2): {'opt_path_reward': 28, 'opt_path_len': 23},
-    # (1, 7): {'opt_path_reward': 28, 'opt_path_len': 23},
 }
 sub_goals = list(sub_goals_map.keys())
 
 
 ### Parameters
 id = '01'  # experiment id
-num_runs = 100  # equal to random seed for repeatability TODO check if it works
+num_runs = 10  # equal to random seed for repeatability TODO check if it works
 episodes = 200
 algorithms = ["q-learning", "sarsa"]
 epsilons = [0.1]
@@ -58,12 +55,12 @@ show_training = False
 sleep_sec = 0
 # sleep_sec = 0.05  # slow down simulation
 show_learned_path = True # TODO fix it (it used to work before I added checking path after each episode)
-save_raw_data = False
+save_raw_data = True
 
 # Initialize a dictionary to store the results for each algorithm
 # e.g. keys: {((5, 3), 'q-learning', 0.1): [], ((5, 3), 'sarsa', 0.1): [], ((7, 3), 'q-learning', 0.1): [], ...
 results = {(sub_goal, alg, eps): [] for sub_goal in sub_goals_map.keys() for alg in algorithms for eps in epsilons}
-convergence_episodes = {(sub_goal, alg): [] for sub_goal in sub_goals_map.keys() for alg in algorithms}
+convergence_steps = {(sub_goal, alg): [] for sub_goal in sub_goals_map.keys() for alg in algorithms}
 
 folder = "./results"
 if not os.path.exists(folder):
@@ -101,7 +98,7 @@ for sub_goal, sub_goal_data in sub_goals_map.items():
                 # #######################
                 # # Initialize W&B for this run
                 # wandb.init(
-                #     project="maze-rl-2",
+                #     project="maze-rl-6",
                 #     name=f"{id}_{alg}_{sub_goal}_run{run}",
                 #     config={
                 #         "algorithm": alg,
@@ -125,65 +122,64 @@ for sub_goal, sub_goal_data in sub_goals_map.items():
                 env.render()
 
                 # Train and log data
-                rewards, path_lengths, optimal_path_found, q_table_1, q_table_2 = env.train(episodes,
+                rewards, path_lengths, convergence_step, q_table_1, q_table_2 = env.train(episodes,
                                                                                             sleep_sec,
                                                                                             opt_path_reward,
                                                                                             opt_path_len
                                                                                             )
                 # ################ Log data to W&B after each episode
-                # for episode in range(episodes):
+                # for step in range(len(rewards)):
                 #     chart_name=f"{id}_{alg}_{sub_goal}"
                 #
                 #     wandb.log({
-                #         f'Episode {chart_name}': episode + 1,
-                #         f'Reward {chart_name}': rewards[episode],
-                #         f'Path_Length {chart_name}': path_lengths[episode],
-                #         f'Optimal_Path_Found {chart_name}': optimal_path_found[episode]
+                #         f'Environment Step {chart_name}': step + 1,
+                #         f'Reward {chart_name}': rewards[step]
                 #     })
                 #
-
+                #
                 #
                 # # Save artifacts (e.g., model, Q-tables) if necessary
                 # # You can log other files like models or configurations as needed
-                # wandb.save(csv_filename)
+                # # wandb.save(csv_filename)
                 #
                 # # Finish the W&B run
                 # wandb.finish()
                 # #####################
 
-                # Determine the episode of convergence for each run
-                for episode in range(10, episodes):
-                    # Check if `optimal_path_found` was true 8 out of the last 10 episodes
-                    if np.sum(optimal_path_found[episode - 10:episode]) >= 8:
-                        convergence_episode = episode
-                        break
-                else:
-                    convergence_episode = 1000  # TODO 1000
-                    print('convergence_episode = 1000')
+                # # Determine the episode of convergence for each run
+                # for episode in range(10, episodes):
+                #     # Check if `optimal_path_found` was true 8 out of the last 10 episodes
+                #     if np.sum(optimal_path_found[episode - 10:episode]) >= 8:
+                #         convergence_episode = episode
+                #         break
+                # else:
+                #     convergence_episode = 1000  # TODO 1000
+                #     print('convergence_episode = 1000')
 
-                convergence_episodes[(sub_goal, alg)].append(convergence_episode)
-                results[(sub_goal, alg, eps)].append((rewards, path_lengths, optimal_path_found))
+                convergence_steps[(sub_goal, alg)].append(convergence_episode)
+                results[(sub_goal, alg, eps)].append((rewards, path_lengths))
 
                 df_results = pd.DataFrame({
-                    'Episode': range(1, len(rewards) + 1),
+                    'Environment Step': range(1, len(rewards) + 1),
                     'Reward': rewards,
-                    'Path_Length': path_lengths,
-                    'Optimal_Path_Found': optimal_path_found
+                    # 'Path_Length': path_lengths,
+                    # 'Optimal_Path_Found': optimal_path_found
                 })
 
                 # Save to CSV
                 if save_raw_data:
-                    csv_filename = f"{output_folder}/{alg}_run{run}.csv"
+                    csv_filename = f"{output_folder}/{alg}/{alg}_run{run}.csv"
+                    os.makedirs(os.path.dirname(csv_filename), exist_ok=True)
                     df_results.to_csv(csv_filename, index=False)
                     print(f"Saved results to {csv_filename}")
 
             # TODO doesn't work
             # df_convergence_episodes = pd.DataFrame({
-            #     'Run': range(1, len(convergence_episodes) + 1),
-            #     'Convergence_episode': [conv_ep for conv_ep in convergence_episodes]
+            #     'Run': range(1, len(convergence_steps) + 1),
+            #     'Convergence_episode': [conv_ep for conv_ep in convergence_steps]
             # })
             # df_convergence_episodes.to_csv(f'{output_folder}/_{alg}_conv_ep.csv', index=False)
-        print(f'convergence_episodes for {alg}', convergence_episodes[(sub_goal, alg)])
+        print(f'convergence_episodes for {alg}', convergence_steps[(sub_goal, alg)])
 
 ####################################
 # Calculate aggregated metrics and visualize the results for each sub-goal
@@ -203,11 +199,11 @@ for sub_goal in sub_goals_map.keys():
     for (sg, alg, eps) in results:
         if sg == sub_goal:
             # Convert to numpy arrays for easier processing
-            rewards_array, path_length_array, optimal_path_found_array = zip(*results[(sub_goal, alg, eps)])
+            rewards_array, path_length_array = zip(*results[(sub_goal, alg, eps)])
 
             rewards_array = np.array(rewards_array)
             path_length_array = np.array(path_length_array)
-            convergence_episodes_array = np.array(convergence_episodes[(sub_goal, alg)])
+            convergence_episodes_array = np.array(convergence_steps[(sub_goal, alg)])
 
             # Calculate mean and standard deviations
             mean_total_rewards[(alg, eps)] = np.mean(rewards_array, axis=0)
@@ -244,7 +240,7 @@ for sub_goal in sub_goals_map.keys():
     ax.set_title(f"Sub-Goal at {sub_goal}")
     ax.set_xlabel("Episodes")
     ax.set_ylabel("Mean Total Rewards")
-    ax.set_ylim(-300, 100)
+    ax.set_ylim(-50, 70)
     ax.legend(loc='lower right')
     ax.grid(True, linestyle='--', linewidth=0.5)
     plt.tight_layout()
@@ -301,7 +297,7 @@ for sub_goal in sub_goals_map.keys():
 
     # Customize plot
     ax3.set_xticks([1, 2])
-    ax3.set_ylim((65, 165))
+    ax3.set_ylim((0, 130))
     ax3.set_xticklabels(algorithms)
     ax3.set_ylabel('Convergence Episode')
     ax3.set_title(f'Sub-Goal at {sub_goal}')
@@ -310,12 +306,12 @@ for sub_goal in sub_goals_map.keys():
     plt.show()
 
 ###################
-# Perform statistical tests on convergence_episodes TODO optimize code
+# Perform statistical tests on convergence_steps TODO optimize code
 for sub_goal in sub_goals:
     print(f'\nH1: q-learning mean != sarsa mean for {sub_goal}')
     # Retrieve data for SARSA and Q-learning
-    q_learning_data = convergence_episodes[(sub_goal, 'q-learning')]
-    sarsa_data = convergence_episodes[(sub_goal, 'sarsa')]
+    q_learning_data = convergence_steps[(sub_goal, 'q-learning')]
+    sarsa_data = convergence_steps[(sub_goal, 'sarsa')]
 
     # Calculate means for interpretation
     q_learning_mean = np.mean(q_learning_data)
@@ -338,8 +334,8 @@ for sub_goal in sub_goals:
 for sub_goal in sub_goals:
     print(f'\nH1: q-learning mean < sarsa mean for {sub_goal}')
     # Retrieve data for SARSA and Q-learning
-    q_learning_data = convergence_episodes[(sub_goal, 'q-learning')]
-    sarsa_data = convergence_episodes[(sub_goal, 'sarsa')]
+    q_learning_data = convergence_steps[(sub_goal, 'q-learning')]
+    sarsa_data = convergence_steps[(sub_goal, 'sarsa')]
 
     # Calculate means for interpretation
     q_learning_mean = np.mean(q_learning_data)
@@ -360,8 +356,8 @@ for sub_goal in sub_goals:
 for sub_goal in sub_goals:
     print(f'\nH1: q-learning mean > sarsa mean for {sub_goal}')
     # Retrieve data for SARSA and Q-learning
-    q_learning_data = convergence_episodes[(sub_goal, 'q-learning')]
-    sarsa_data = convergence_episodes[(sub_goal, 'sarsa')]
+    q_learning_data = convergence_steps[(sub_goal, 'q-learning')]
+    sarsa_data = convergence_steps[(sub_goal, 'sarsa')]
 
     # Perform one-sided T-test (alternative: SARSA mean < Q-learning mean)
     t_stat, p_value = ttest_ind(sarsa_data, q_learning_data, equal_var=True, alternative='less')
