@@ -3,8 +3,6 @@ import gym
 from gym import spaces
 import numpy as np
 import pygame
-import matplotlib.pyplot as plt
-from gym.envs.registration import register
 import time
 import wandb
 
@@ -67,7 +65,7 @@ class MazeEnv(gym.Env):
         self.path_2 = []
         self.current_path = self.path_1
         self.image_counter = 1
-        self.max_num_steps_per_phase = 500 # 4 * self.maze.size # Assume TODO
+        self.max_num_steps_per_phase = 500 # 4 * self.maze.size # Assume
         self.reduce_epsilon = reduce_epsilon
         self.output_folder = output_folder
 
@@ -101,9 +99,8 @@ class MazeEnv(gym.Env):
 
         # Compute next state
         self.next_state = (current_state[0] + actions_map[action][0], current_state[1] + actions_map[action][1])
-
-        # if self.show_training:
-        #     print(f"self.next_state, {self.next_state} = ({self.current_state[0]} + {actions_map[action][0]}, {self.current_state[1]} + {actions_map[action][1]})")
+        if self.show_training:
+            print(f"self.next_state, {self.next_state} = ({self.current_state[0]} + {actions_map[action][0]}, {self.current_state[1]} + {actions_map[action][1]})")
 
         reward = -0.1 # Small penalty for regular movement
 
@@ -115,7 +112,7 @@ class MazeEnv(gym.Env):
         else:
             # Check if agent reaches the sub-goal for the first time
             if self.next_state == self.sub_goal_pos and not self.sub_goal_reached:
-                reward = 10  # Small reward
+                reward = 10  # Small reward for the sub-goal
 
             # Check if agent reaches the final goal
             elif self.next_state == self.end_goal_pos:
@@ -204,10 +201,6 @@ class MazeEnv(gym.Env):
         next_state, reward_immediate, self.done, _, _ = self.step(action, self.current_state)
         row, col = self.current_state
         next_row, next_col = next_state
-        # td_target = reward + self.gamma * self.q_table_current[next_row, next_col, next_action]
-        # td_error = td_target - self.q_table_current[row, col, action]
-        # self.q_table_current[row, col, action] += self.alpha * td_error
-
         difference = self.alpha * (reward +
                                    self.gamma * self.q_table_current[next_row, next_col, next_action] -
                                    self.q_table_current[row, col, action])
@@ -232,18 +225,13 @@ class MazeEnv(gym.Env):
         random.seed(self.run)
         np.random.seed(self.run)
 
-        total_rewards_in_episodes = []
         path_length_in_episodes = []
-        optimal_path_found = []
         optimal_path_found_flag = False
         self.episode = 1
         rewards_in_run = []
         while self.episode <= episodes and not optimal_path_found_flag:
         # for episode in range(1, episodes+1) :
             self.reset()
-            # For SARSA: Choose action A from S using policy derived from Q (e-greedy/count-based) TODO
-            # if self.algorithm == "sarsa":
-            #     action = self.choose_action(from_state=self.current_state)
 
             # Loop until the agent reaches the Sub-Goal and End-Goal or path is too long for this phase
             while not (self.done or len(self.current_path) > self.max_num_steps_per_phase):
@@ -266,7 +254,7 @@ class MazeEnv(gym.Env):
                 elif self.algorithm == "sarsa": # based on e-greedy/count-based
                     next_action = self.choose_action(from_state=next_state)  # update action for the next step for SARSA based on e-greedy/count-based
                     self.update_q_value_sarsa(action, reward_immediate, next_state, next_action)
-                    # action = next_action # TODO ???? update action for the next step for SARSA
+                    # action = next_action # we just choose it again in the next loop (e-greedy)
 
                 if self.next_state == self.sub_goal_pos and not self.sub_goal_reached:
                     self.sub_goal_reached = True
@@ -275,7 +263,6 @@ class MazeEnv(gym.Env):
                     self.current_path = self.path_2 = []
 
                 self.current_path.append((self.current_state, action))
-
 
                 # Move to the next state if it's not a wall
                 if self.maze[self.next_state[0], self.next_state[1]] != '1':
@@ -342,8 +329,6 @@ class MazeEnv(gym.Env):
         done = False
         total_reward = 0
         sub_goal_reached = False
-        epsilon = 0
-        show_training = True#False
 
         # Loop until the agent reaches the Sub-Goal and End-Goal or whole path is too long
         while not done and len(learned_path) <= opt_path_len:
@@ -355,11 +340,6 @@ class MazeEnv(gym.Env):
             row, col = current_state
             action = np.argmax(q_table[row, col])
             next_state, reward_immediate, done, _, _ = self.step(action, current_state)
-            # print('current_state', current_state)
-            # print('q_table[row, col]', q_table[row, col])
-            # print('action', action)
-            # print('next_state', next_state)
-            # print('reward_immediate', reward_immediate)
 
             # Switch to q_table_2 if Sub-Goal is reached
             if next_state == self.sub_goal_pos and not sub_goal_reached:
