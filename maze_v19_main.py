@@ -16,76 +16,6 @@ gym.register(
     kwargs={'maze': None}
 )
 
-def visualize_results(id, folder, results, sub_goal):
-    # Calculate average and standard deviation of rewards for each algorithm and epsilon
-    mean_total_rewards = {}
-    std_total_rewards = {}
-
-    for (sg, alg, eps) in results:
-        if sg == sub_goal:
-            rewards_array = np.array(results[(sub_goal, alg, eps)])
-            mean_total_rewards[alg] = np.mean(rewards_array, axis=0)
-            std_total_rewards[alg] = np.std(rewards_array, axis=0)
-
-    # Paired t-test between Q-learning and SARSA with epsilon = 0.1
-    # q_learning_rewards = mean_rewards[('q-learning', 0.1)]
-    # sarsa_rewards = mean_rewards[('sarsa', 0.1)]
-    # print("q_learning_rewards", q_learning_rewards)
-    # print("sarsa_rewards", sarsa_rewards)
-    # t_stat, p_value = ttest_rel(q_learning_rewards, sarsa_rewards)
-    # print(p_value)
-    # print(f"Paired t-test between Q-learning (epsilon = 0.1) and SARSA (epsilon = 0.1):")
-    # print(f"t-statistic = {t_stat:.4f}, p-value = {p_value:.4f}")
-    #
-    # if p_value < alpha:
-    #     print("Conclusion: There is a statistically significant difference between the rewards of Q-learning and SARSA with epsilon = 0.1 (p < 0.05).")
-    # else:
-    #     print("Conclusion: There is no statistically significant difference between the rewards of Q-learning and SARSA with epsilon = 0.1 (p >= 0.05).")
-    #
-    # # Calculate first episode where the algorithms reach maximum possible reward
-    # first_reach_max = {alg: None for alg in algorithms}
-    # num_not_reach_max = {alg: 0 for alg in algorithms}
-    #
-    # for alg in algorithms:
-    #     alg_rewards = np.mean(results[(alg, 0)], axis=0)
-    #     for episode in range(episodes):
-    #         if alg_rewards[episode] >= max_possible_reward and first_reach_max[alg] is None:
-    #             first_reach_max[alg] = episode
-    #         if alg_rewards[episode] < max_possible_reward:
-    #             num_not_reach_max[alg] += 1
-
-    # Save the mean_total_rewards to CSV
-    df_mean_total_rewards = pd.DataFrame({
-        f"{alg}_{eps}": mean_total_rewards[alg] for alg in mean_total_rewards
-    })
-    df_mean_total_rewards.to_csv(f'{folder}_{sub_goal}_mean_total_rewards.csv', index=False)
-
-    # Print maximum reward comparison stats
-    # print("First episode where Q-learning reached max reward:", first_reach_max['q-learning'])
-    # print("First episode where SARSA reached max reward:", first_reach_max['sarsa'])
-    # print("Number of times Q-learning did not reach max reward:", num_not_reach_max['q-learning'])
-    # print("Number of times SARSA did not reach max reward:", num_not_reach_max['sarsa'])
-
-    # Plot the results for the sub-goal
-    plt.figure()
-    for alg in mean_total_rewards:
-        label = f"{alg})" # (ε={eps})"
-        plt.plot(range(len(mean_total_rewards[alg])), mean_total_rewards[alg], label=label)
-        plt.fill_between(
-            range(len(mean_total_rewards[alg])),
-            mean_total_rewards[alg] - std_total_rewards[alg],
-            mean_total_rewards[alg] + std_total_rewards[alg],
-            alpha=0.2
-        )
-
-    plt.title(f'Sub-Goal at Position {sub_goal}')
-    plt.xlabel('Episodes')
-    plt.ylabel('Average Total Rewards')
-    plt.ylim(-300, 100)
-    plt.legend(loc='lower right')
-    plt.grid(which='major', linestyle='--', linewidth=0.75)
-    plt.show()
-
 # Define the maze: 1 - wall, 'S' - start, 'E' - end-goal, 0 - empty space
 maze = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -101,11 +31,46 @@ maze = [
 ]
 
 # Define possible sub-goal positions and data for testing calculated manually
+# TODO check values
 sub_goals_map = {
     (5, 3): {'opt_path_reward': 36, 'opt_path_len': 15},
+    # (7, 3): {'opt_path_reward': 32, 'opt_path_len': 19},
+    (1, 4): {'opt_path_reward': 32, 'opt_path_len': 19},
     (8, 3): {'opt_path_reward': 30, 'opt_path_len': 21},
-    (1, 4): {'opt_path_reward': 32, 'opt_path_len': 19}
+    # (8, 2): {'opt_path_reward': 28, 'opt_path_len': 23},
+    # (1, 7): {'opt_path_reward': 28, 'opt_path_len': 23},
 }
+sub_goals = list(sub_goals_map.keys())
+
+
+### Parameters
+id = '01'  # experiment id
+num_runs = 100  # equal to random seed for repeatability TODO check if it works
+episodes = 200
+algorithms = ["q-learning", "sarsa"]
+epsilons = [0.1]
+reduce_epsilon = True
+alpha = 0.05
+gamma = 0.99
+
+show_training = False
+# show_training = True # it automatically save pngs for one run
+sleep_sec = 0
+# sleep_sec = 0.05  # slow down simulation
+show_learned_path = True # TODO fix it (it used to work before I added checking path after each episode)
+save_raw_data = False
+
+# Initialize a dictionary to store the results for each algorithm
+# e.g. keys: {((5, 3), 'q-learning', 0.1): [], ((5, 3), 'sarsa', 0.1): [], ((7, 3), 'q-learning', 0.1): [], ...
+results = {(sub_goal, alg, eps): [] for sub_goal in sub_goals_map.keys() for alg in algorithms for eps in epsilons}
+convergence_episodes = {(sub_goal, alg): [] for sub_goal in sub_goals_map.keys() for alg in algorithms}
+
+folder = "./results"
+if not os.path.exists(folder):
+    os.makedirs(folder)
+
+### Run experiment
+
 # Set a sub-goal in the maze
 def place_sub_goal(maze, sub_goal_pos):
     row, col = sub_goal_pos
@@ -117,92 +82,45 @@ def place_sub_goal(maze, sub_goal_pos):
     else:
         print("Sub-goal cannot be places")
 
-### Parameters
-episodes = 200
-
-sleep_sec = 0
-# sleep_sec = 0.05
-# sleep_sec = 0.5
-
-num_experiments = 10 # equal to seed
-show = False
-# show = True
-
-# show = False
-# algorithms = ["q-learning"]
-# algorithms = ["sarsa"]
-algorithms = ["q-learning", "sarsa"]
-
-epsilons = [0.1]
-# epsilons = [0, 0.001, 0.01, 0.1]
-
-reduce_epsilon = False
-reduce_epsilon = True # TODO
-
-alpha = 0.05
-
-# sub_goals = [(5,3), (8,3), (1,4)]
-# sub_goals = [(5,3)]
-# for sub_goal, _ in sub_goals_map.items():
-#     maze_with_sub_goal = place_sub_goal(maze_np, sub_goal)
-
-# Initialize a dictionary to store the results for each algorithm
-# keys: ('q-learning', 0), ('q-learning', 0.1), ('sarsa', 0), ('sarsa', 0.1) TODO
-results = {(sub_goal, alg, eps): [] for sub_goal in sub_goals_map.keys() for alg in algorithms for eps in epsilons}
-print(results)
-convergence_episodes = {(sub_goal, alg): [] for sub_goal in sub_goals_map.keys() for alg in algorithms}
-print('convergence_episodes', convergence_episodes)
-
-folder = "./results"
-if not os.path.exists(folder):
-    os.makedirs(folder)
-
-id = '01'
-# Initialize W&B experiment
 for sub_goal, sub_goal_data in sub_goals_map.items():
-    max_possible_reward = sub_goal_data['opt_path_reward']
-    length_of_shortest_path = sub_goal_data['opt_path_len']
+    opt_path_reward = sub_goal_data['opt_path_reward']
+    opt_path_len = sub_goal_data['opt_path_len']
+    print(f'\nRunning for Sub-Goal {sub_goal} - Optimal path reward: {opt_path_reward}, Optimal path length: {opt_path_len}')
+
     maze_with_sub_goal = place_sub_goal(maze, sub_goal)
-    print(f'Running for Sub-Goal {sub_goal} - Max Reward: {max_possible_reward}, Path Length: {length_of_shortest_path}')
-    maze_with_sub_goal = place_sub_goal(maze, sub_goal)
-    print('maze_with_sub_goal', maze_with_sub_goal)
+
     output_folder = f'{folder}/{sub_goal}'
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    opt_path_reward = sub_goal_data['opt_path_reward']
-    opt_path_len = sub_goal_data['opt_path_len']
-
     for alg in algorithms:
         for eps in epsilons:
-            convergence_episode = 1000  # TODO
-
-            for experiment in range(1, num_experiments+1):
-                rewards = []
-
+            convergence_episode = 1000  # if cannot convergence within 200 episodes TODO improve
+            for run in range(1, num_runs + 1):
 
                 # #######################
                 # # Initialize W&B for this run
                 # wandb.init(
                 #     project="maze-rl-2",
-                #     name=f"{id}_{alg}_{sub_goal}_exp{experiment}",
+                #     name=f"{id}_{alg}_{sub_goal}_run{run}",
                 #     config={
                 #         "algorithm": alg,
                 #         "epsilon": eps,
                 #         "alpha": alpha,
                 #         "episodes": episodes,
                 #         "sub_goal": sub_goal,
-                #         "max_possible_reward": max_possible_reward,
-                #         "length_of_shortest_path": length_of_shortest_path,
-                #         "experiment_number": experiment
+                #         "opt_path_reward": opt_path_reward,
+                #         "opt_path_len": opt_path_len,
+                #         "run_number": run
                 #     }
                 # )
                 # ##########################
 
                 # Create environment
-                env = gym.make('Maze_v19', maze=maze_with_sub_goal, epsilon=eps, algorithm=alg,
-                               experiment=experiment, show=show, reduce_epsilon=reduce_epsilon, alpha=alpha,
-                               output_folder=output_folder)
+                env = gym.make('Maze_v19', maze=maze_with_sub_goal, epsilon=eps, algorithm=alg, run=run, show_training=show_training,
+                               show_learned_path=show_learned_path,
+                               reduce_epsilon=reduce_epsilon, alpha=alpha,
+                               gamma=gamma, output_folder=output_folder)
                 env.reset()
                 env.render()
 
@@ -233,10 +151,7 @@ for sub_goal, sub_goal_data in sub_goals_map.items():
                 # wandb.finish()
                 # #####################
 
-
-                # Save results to CSV
-
-                # Determine the episode of convergence for each experiment
+                # Determine the episode of convergence for each run
                 for episode in range(10, episodes):
                     # Check if `optimal_path_found` was true 8 out of the last 10 episodes
                     if np.sum(optimal_path_found[episode - 10:episode]) >= 8:
@@ -257,27 +172,18 @@ for sub_goal, sub_goal_data in sub_goals_map.items():
                 })
 
                 # Save to CSV
-                csv_filename = f"{output_folder}/{alg}_exp{experiment}.csv"
-                df_results.to_csv(csv_filename, index=False)
-                # print(f"Saved results to {csv_filename}")
+                if save_raw_data:
+                    csv_filename = f"{output_folder}/{alg}_run{run}.csv"
+                    df_results.to_csv(csv_filename, index=False)
+                    print(f"Saved results to {csv_filename}")
 
+            # TODO doesn't work
             # df_convergence_episodes = pd.DataFrame({
-            #     'Experiment': range(1, len(convergence_episodes) + 1),
+            #     'Run': range(1, len(convergence_episodes) + 1),
             #     'Convergence_episode': [conv_ep for conv_ep in convergence_episodes]
             # })
             # df_convergence_episodes.to_csv(f'{output_folder}/_{alg}_conv_ep.csv', index=False)
-
-    print(f'convergence_episodes', convergence_episodes)
-
-
-                # csv
-                # learned_path, learned_path_reward = env.check_learned_path(opt_path_reward, opt_path_len)
-                # print("learned_path LEN", len(learned_path))
-                # print("learned_path_reward", learned_path_reward)
-                # print('optimal_path_found', optimal_path_found)
-
-            # print('convergence_episodes', alg, convergence_episodes)
-
+        print(f'convergence_episodes for {alg}', convergence_episodes[(sub_goal, alg)])
 
 ####################################
 # Calculate aggregated metrics and visualize the results for each sub-goal
@@ -302,9 +208,8 @@ for sub_goal in sub_goals_map.keys():
             rewards_array = np.array(rewards_array)
             path_length_array = np.array(path_length_array)
             convergence_episodes_array = np.array(convergence_episodes[(sub_goal, alg)])
-            print('convergence_episodes_array_000', convergence_episodes_array)
 
-            # Calculate mean and standard deviation for rewards
+            # Calculate mean and standard deviations
             mean_total_rewards[(alg, eps)] = np.mean(rewards_array, axis=0)
             std_total_rewards[(alg, eps)] = np.std(rewards_array, axis=0)
 
@@ -312,7 +217,6 @@ for sub_goal in sub_goals_map.keys():
             std_path_length[(alg, eps)] = np.std(path_length_array, axis=0)
 
             mean_convergence_episodes[(sg, alg)] = np.mean(convergence_episodes_array, axis=0)
-
             std_mean_convergence_episodes[(sg, alg)] = np.std(convergence_episodes_array, axis=0)
 
     # Save aggregated metrics to CSV
@@ -325,8 +229,6 @@ for sub_goal in sub_goals_map.keys():
         f"{alg}_{eps}": mean_path_length[(alg, eps)] for (alg, eps) in mean_path_length
     })
     df_mean_path_length.to_csv(f'{output_folder}/_mean_path_length.csv', index=False)
-
-    # visualize_results(id, output_folder, results, sub_goal)
 
     # Plot mean rewards with std as a shaded area for this sub-goal
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -370,24 +272,24 @@ for sub_goal in sub_goals_map.keys():
 
 ###########################################
 # Save mean convergence episodes to CSV
+print("-" * 60)
 df_mean_convergence = pd.DataFrame([
-    {"Algorithm": alg, "Epsilon": eps,
-     "Mean Convergence Episode": mean_convergence_episodes[(alg, eps)],
-     "Std": std_mean_convergence_episodes[(alg, eps)]
+    {"Sub-Goal": sg, "Algorithm": alg,
+     "Mean Convergence Episode": mean_convergence_episodes[(sg, alg)],
+     "Std": std_mean_convergence_episodes[(sg, alg)]
      }
-    for (alg, eps) in mean_convergence_episodes
+    for (sg, alg) in mean_convergence_episodes
 ])
 df_mean_convergence.to_csv(f'{folder}/_mean_convergence_episodes.csv', index=False)
-print('mean_convergence_episodes', mean_convergence_episodes)
-
-sub_goals = [(5, 3), (8, 3), (1, 4)]
-colors = {'q-learning': 'blue', 'sarsa': 'orange'}
+print(f'\nmean_convergence_episodes', mean_convergence_episodes)
 
 ##########################################
 # Plot Convergence Episode Distribution
+
+colors = {'q-learning': 'blue', 'sarsa': 'orange'}
+
 for sub_goal in sub_goals_map.keys():
     # Extract data for the specific sub-goal
-    algorithms = ['q-learning', 'sarsa']
     means = [mean_convergence_episodes[(sub_goal, alg)] for alg in algorithms]
 
     # Create the figure
@@ -407,26 +309,79 @@ for sub_goal in sub_goals_map.keys():
     plt.tight_layout()
     plt.show()
 
-
 ###################
-# Perform statistical tests
+# Perform statistical tests on convergence_episodes TODO optimize code
 for sub_goal in sub_goals:
+    print(f'\nH1: q-learning mean != sarsa mean for {sub_goal}')
     # Retrieve data for SARSA and Q-learning
     q_learning_data = convergence_episodes[(sub_goal, 'q-learning')]
     sarsa_data = convergence_episodes[(sub_goal, 'sarsa')]
+
+    # Calculate means for interpretation
+    q_learning_mean = np.mean(q_learning_data)
+    sarsa_mean = np.mean(sarsa_data)
 
     # Perform T-test
     t_stat, p_value = ttest_ind(q_learning_data, sarsa_data, equal_var=True)
 
     # Print the results
-    print(f"Sub-Goal Position: {sub_goal}")
-    print(f"T-statistic: {t_stat:.3f}")
-    print(f"P-value: {p_value:.3f}")
+    print(f"P-value: {p_value:.3f}, T-statistic: {t_stat:.3f}, Q-learning Mean: {q_learning_mean:.2f}, SARSA Mean: {sarsa_mean:.2f}")
     if p_value < 0.05:
-        print("The difference is statistically significant (reject the null hypothesis).")
+        print("The difference is statistically significant (REJECT the null hypothesis).")
     else:
-        print("No significant difference (fail to reject the null hypothesis).")
-    print("-" * 60)
+        print("No significant difference (FAIL to reject the null hypothesis).")
+
+# Perform one-sided T-test comparisons for each sub-goal where the alternative hypothesis is that q-learning converges faster than sarsa
+
+
+### q-learning mean < sarsa mean ??
+for sub_goal in sub_goals:
+    print(f'\nH1: q-learning mean < sarsa mean for {sub_goal}')
+    # Retrieve data for SARSA and Q-learning
+    q_learning_data = convergence_episodes[(sub_goal, 'q-learning')]
+    sarsa_data = convergence_episodes[(sub_goal, 'sarsa')]
+
+    # Calculate means for interpretation
+    q_learning_mean = np.mean(q_learning_data)
+    sarsa_mean = np.mean(sarsa_data)
+
+    # Perform one-sided T-test (alternative: q-learning mean < sarsa mean)
+    t_stat, p_value = ttest_ind(q_learning_data, sarsa_data, equal_var=True, alternative='less')
+
+    # Print the results
+    print(f"P-value: {p_value:.3f}, T-statistic: {t_stat:.3f}, Q-learning Mean: {q_learning_mean:.2f}, SARSA Mean: {sarsa_mean:.2f}")
+    if p_value < 0.05:
+        print("Q-learning converges significantly faster than SARSA (REJECT the null hypothesis).")
+    else:
+        print(
+            "No significant evidence that Q-learning converges faster than SARSA (FAIL to reject the null hypothesis).")
+
+### q-learning mean > sarsa mean ??
+for sub_goal in sub_goals:
+    print(f'\nH1: q-learning mean > sarsa mean for {sub_goal}')
+    # Retrieve data for SARSA and Q-learning
+    q_learning_data = convergence_episodes[(sub_goal, 'q-learning')]
+    sarsa_data = convergence_episodes[(sub_goal, 'sarsa')]
+
+    # Perform one-sided T-test (alternative: SARSA mean < Q-learning mean)
+    t_stat, p_value = ttest_ind(sarsa_data, q_learning_data, equal_var=True, alternative='less')
+
+    # Calculate means for interpretation
+    q_learning_mean = np.mean(q_learning_data)
+    sarsa_mean = np.mean(sarsa_data)
+
+    # Print the results
+    print(f"P-value: {p_value:.3f}, T-statistic: {t_stat:.3f}, Q-learning Mean: {q_learning_mean:.2f}, SARSA Mean: {sarsa_mean:.2f}")
+
+    # Interpretation based on test results and comparison of means
+    if p_value < 0.05:
+        if sarsa_mean < q_learning_mean:
+            print("SARSA converges significantly faster than Q-learning (REJECT the null hypothesis).")
+        else:
+            print("Contrary to the hypothesis, Q-learning converges faster (SARSA mean > Q-learning mean).")
+    else:
+        print(
+            "No significant evidence that SARSA converges faster than Q-learning (FAIL to reject the null hypothesis).")
 
 
 ######################

@@ -9,8 +9,8 @@ import time
 import wandb
 
 class MazeEnv(gym.Env):
-    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.01,
-                 algorithm="random", experiment=0, show=True, reduce_epsilon=False, output_folder="./results"):
+    def __init__(self, maze, alpha=0.1, gamma=0.99, epsilon=0.1,
+                 algorithm="q-learning", run=0, show_training=True, show_learned_path=True, reduce_epsilon=True, output_folder="./results"):
         super(MazeEnv, self).__init__()
         self.maze = np.array(maze)
         self.start_pos = (int(np.where(self.maze == 'S')[0]), int(np.where(self.maze == 'S')[1]))
@@ -58,8 +58,9 @@ class MazeEnv(gym.Env):
 
         self.episode = 0
         self.total_reward = 0
-        self.experiment = experiment
-        self.show = show
+        self.run = run
+        self.show_training = show_training
+        self.show_learned_path = show_learned_path
 
         self.done = False
         self.path_1 = []
@@ -101,7 +102,7 @@ class MazeEnv(gym.Env):
         # Compute next state
         self.next_state = (current_state[0] + actions_map[action][0], current_state[1] + actions_map[action][1])
 
-        # if self.show:
+        # if self.show_training:
         #     print(f"self.next_state, {self.next_state} = ({self.current_state[0]} + {actions_map[action][0]}, {self.current_state[1]} + {actions_map[action][1]})")
 
         reward = -1 # Small penalty for regular movement
@@ -109,7 +110,7 @@ class MazeEnv(gym.Env):
         # Check if the next state is a wall
         if self.maze[self.next_state[0], self.next_state[1]] == '1':
             reward = -50  # Penalty for hitting a wall
-            if self.show:
+            if self.show_training:
                 print('wall >> state in same position')
         else:
             # Check if agent reaches the sub-goal for the first time
@@ -162,7 +163,7 @@ class MazeEnv(gym.Env):
                 # Get all actions that have the max Q-value
                 max_actions = np.where(self.q_table_current[row, col] == max_value)[0]
 
-                if self.show:
+                if self.show_training:
                     print('state:', row, col, "======================")
                     print('state:', row, col)
                     print(f'q_table_current[{row}, {col}]\n', self.q_table_current[row, col])
@@ -171,7 +172,7 @@ class MazeEnv(gym.Env):
 
                 # Randomly choose one of the actions that have the max Q-value
                 chosen_action = np.random.choice(max_actions)
-            if self.show:
+            if self.show_training:
                 print('chosen_action', chosen_action)
             return chosen_action
 
@@ -184,7 +185,7 @@ class MazeEnv(gym.Env):
         difference = self.alpha * (reward +
                                    self.gamma * self.q_table_current[next_row, next_col, best_next_action] -
                                    self.q_table_current[row, col, action])
-        if self.show:
+        if self.show_training:
             print("next_state", next_state)
             print(f"q_table_current[{next_row}, {next_col}]\n", self.q_table_current[next_row, next_col])
             print("best_next_action", best_next_action)
@@ -195,7 +196,7 @@ class MazeEnv(gym.Env):
         self.q_table_current[row, col, action] += difference
         self.counts_current[row, col, action] += 1
 
-        if self.show:
+        if self.show_training:
             print(f"updated_q-table for {row}, {col}\n", self.q_table_current[row, col])
             print(f"updated_q-table for {next_row}, {next_col}\n", self.q_table_current[next_row, next_col])
 
@@ -211,7 +212,7 @@ class MazeEnv(gym.Env):
                                    self.gamma * self.q_table_current[next_row, next_col, next_action] -
                                    self.q_table_current[row, col, action])
 
-        if self.show:
+        if self.show_training:
             print("next_state", next_state)
             print(f"q_table_current[{next_row}, {next_col}]\n", self.q_table_current[next_row, next_col])
             print("next_action", next_action)
@@ -222,14 +223,14 @@ class MazeEnv(gym.Env):
         self.q_table_current[row, col, action] += difference
         self.counts_current[row, col, action] += 1
 
-        if self.show:
+        if self.show_training:
             print(f"updated_q-table for {row}, {col}\n", self.q_table_current[row, col])
             print(f"updated_q-table for {next_row}, {next_col}\n", self.q_table_current[next_row, next_col])
 
 
     def train(self, episodes=100, sleep_sec=0, opt_path_reward=0, opt_path_len=0):
-        random.seed(self.experiment)
-        np.random.seed(self.experiment)
+        random.seed(self.run)
+        np.random.seed(self.run)
 
         total_rewards_in_episodes = []
         path_length_in_episodes = []
@@ -251,7 +252,7 @@ class MazeEnv(gym.Env):
                 self.handle_events() # Handle button events
                 if self.is_paused: # Check if the game is paused
                     continue
-                if self.show:
+                if self.show_training:
                     self.render()
 
                 # For Q-learning: Choose action A from S using policy derived from Q (e-greedy/count-based) TODO
@@ -285,21 +286,26 @@ class MazeEnv(gym.Env):
 
                 self.total_reward += reward_immediate
 
-                if self.show:
-                    self.render()
-                time.sleep(sleep_sec) # Add a small delay for better visualization
 
-            if self.show:
+
+            if self.show_training:
                 print('total_reward', self.total_reward)
                 print('path: ', self.current_path)
                 print('rewards_episode: ', rewards_episode)
                 # print('reached_goals', self.reached_goals)
 
+            if episode == episodes and self.show_training: # TODO fix
+                self.render()
+                time.sleep(sleep_sec) # Add a small delay for better visualization
+
             if self.reduce_epsilon:
                 self.epsilon *= 0.95
 
             learned_path, learned_path_reward = self.check_learned_path(opt_path_reward, opt_path_len)
-            if learned_path_reward == opt_path_reward:
+            # print('learned_path_reward', learned_path_reward)
+            # print('learned_path_LEN', len(learned_path))
+            # print('opt_path_len', opt_path_len)
+            if len(learned_path) == opt_path_len:
                 # print("learned_path LEN", len(learned_path))
                 # print("learned_path_reward", learned_path_reward)
                 # print('episode', episode)
@@ -309,6 +315,10 @@ class MazeEnv(gym.Env):
 
             total_rewards_in_episodes.append(self.total_reward)
             path_length_in_episodes.append(len(self.current_path))
+
+            if episode == episodes and self.show_training:
+                self.render()
+                time.sleep(0.05) # Slow down the visualization to see the path
 
             # ###########################
             # wandb.log({
@@ -333,7 +343,7 @@ class MazeEnv(gym.Env):
         total_reward = 0
         sub_goal_reached = False
         epsilon = 0
-        show = True#False
+        show_training = True#False
 
         # Loop until the agent reaches the Sub-Goal and End-Goal or whole path is too long
         while not done and len(learned_path) <= opt_path_len:
@@ -367,11 +377,9 @@ class MazeEnv(gym.Env):
                 # print('OLD next_state', next_state)
                 # print('current_state', current_state)
 
-            # self.render(show_learned_path=True)
-            # time.sleep(0.05) # Slow down the visualization to see the path
         return learned_path, total_reward
 
-    def render(self, show_learned_path=False):
+    def render(self):
         self.screen.fill((255, 255, 255))
 
         for row in range(self.num_rows):
@@ -395,11 +403,11 @@ class MazeEnv(gym.Env):
                         pygame.draw.rect(self.screen, 'black', (cell_left, cell_top, self.cell_size, self.cell_size), 1)
 
                     # Draw learned path as red circles
-                    if show_learned_path:
+                    if self.show_learned_path:
                         if (row, col) in self.current_path:
                             pygame.draw.circle(self.screen, 'red', cell_center, 0.1 * self.cell_size)
 
-                    if self.show:
+                    if self.show_training:
                         ### Display Q-table as 4 numbers in a cell (up, right, down, left)
                         text_up = self.small_font.render(f'{self.q_table_current[row, col, 0]:.2f}', True,
                                                          self.get_q_value_color(((row, col), 0)))
@@ -450,11 +458,11 @@ class MazeEnv(gym.Env):
 
         # Display information about train process
         algorithm_text = self.font.render(f'Algorithm: {self.algorithm}', True, (0, 0, 0))
-        experiment_text = self.font.render(f'Experiment: {self.experiment}', True, (0, 0, 0))
+        run_text = self.font.render(f'Run: {self.run}', True, (0, 0, 0))
         self.screen.blit(algorithm_text, (text_x + 10, text_y_start))
-        self.screen.blit(experiment_text, (text_x + 10, text_y_start + 30))
+        self.screen.blit(run_text, (text_x + 10, text_y_start + 30))
 
-        if self.show:
+        if self.show_training:
             sub_goal_text = self.font.render(f'Sub goal reached', True, (0, 0, 0))
             episode_text = self.font.render(f'Episode: {self.episode}', True, (0, 0, 0))
             reward_text = self.font.render(f'Total Reward: {self.total_reward}', True, (0, 0, 0))
@@ -468,8 +476,9 @@ class MazeEnv(gym.Env):
         pygame.display.update()
 
         # Save each rendering as png for algorithm verification
-        pygame.image.save(self.screen, f"{self.output_folder}/v19_{self.image_counter}.png")
-        self.image_counter += 1
+        if self.show_training:
+            pygame.image.save(self.screen, f"{self.output_folder}/v19_{self.image_counter}.png")
+            self.image_counter += 1
 
     def toggle_pause(self):
         """ Toggles the paused state of the game. """
