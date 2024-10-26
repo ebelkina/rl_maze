@@ -476,9 +476,9 @@ class MazeEnv(gym.Env):
         pygame.display.update()
 
         # Save each rendering as png for algorithm verification
-        if self.show_training:
-            pygame.image.save(self.screen, f"{self.output_folder}/v19_{self.image_counter}.png")
-            self.image_counter += 1
+        # if self.show_training:
+        #     pygame.image.save(self.screen, f"{self.output_folder}/v19_{self.image_counter}.png")
+        #     self.image_counter += 1
 
     def toggle_pause(self):
         """ Toggles the paused state of the game. """
