@@ -53,8 +53,8 @@ reduce_epsilon = True
 alpha = 0.05
 gamma = 0.99
 
-# show_training = False
-show_training = True # commit png out if want to automatically save pngs for one run
+show_training = False
+# show_training = True # commit png out if want to automatically save pngs for one run
 sleep_sec = 0
 # sleep_sec = 0.05  # slow down simulation
 show_learned_path = True # TODO fix it (it used to work before I added checking path after each episode)
