@@ -38,7 +38,7 @@ sub_goals = list(sub_goals_map.keys())
 
 ### Parameters
 id = '01'  # experiment id
-num_runs = 10  # equal to random seed for repeatability TODO check if it works
+num_runs = 100  # equal to random seed for repeatability TODO check if it works
 episodes = 200
 algorithms = ["q-learning", "sarsa"]
 epsilons = [0.1]
@@ -50,7 +50,7 @@ show_training = False
 show_training = True # commit png out if want to automatically save pngs for one run
 sleep_sec = 0
 # sleep_sec = 0.05  # slow down simulation
-show_learned_path = True # TODO fix it (it used to work before I added checking path after each episode)
+show_learned_path = True
 save_raw_data = True
 
 # Initialize a dictionary to store the results for each algorithm
